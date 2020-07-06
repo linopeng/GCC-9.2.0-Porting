@@ -13,15 +13,26 @@
 #include "stringpool.h"
 #include "attribs.h"
 #include "emit-rtl.h"
+#include "diagnostic-core.h"
 #include "stor-layout.h"
 #include "varasm.h"
 #include "calls.h"
 #include "output.h"
-#include "explow.h"
+#include "explow.h"	  					 					  
 #include "expr.h"
 #include "cfgrtl.h"
 #include "builtins.h"
 #include "regs.h"
+#include "langhooks.h"
+#include "cgraph.h"//
+#include "gimple.h"//
+#include "basic-block.h"//
+#include "ggc.h"
+#include "insn-attr.h"
+#include "flags.h"
+#include "except.h"//
+#include "function.h"
+
 
 #define IITB_YES 1
 #define IITB_NO 0
@@ -85,6 +96,100 @@ IITB_regno_ok_for_base_p (int REGN)
         return IITB_YES;
 }
 
+void
+print_operand(FILE *STREAM,rtx X,char CODE)
+{
+}
+
+
+void
+print_operand_address(FILE *STREAM,rtx X)
+{
+}
+
+int
+legitimate_address1(enum machine_mode MODE,rtx X)
+{
+	return 0;
+
+}
+/*Non-strict definition*/
+int
+legitimate_address2(enum machine_mode MODE,rtx X)
+{
+        
+rtx op1,op2;
+        if(CONSTANT_ADDRESS_P(X))
+                return 1;
+        
+	if(GET_CODE(X)==REG && non_strict_base_reg(REGNO(X)))
+                return 1;
+        
+	   
+	return 0;
+}
+
+rtx
+function_value ()
+{
+	//Return register is register 2 when value is of type SImode.
+	return (gen_rtx_REG(SImode,2));
+}
+
+int
+non_strict_base_reg(int regn)
+{
+	if(is_base_reg(regn))
+		return IITB_YES;
+	if(regn>=FIRST_PSEUDO_REGISTER)
+		return IITB_YES;
+	return IITB_NO;
+}
+
+int 
+is_base_reg(int REGN)
+{
+	if(is_caller_saved_reg(REGN) 
+			|| is_callee_saved_reg(REGN) 
+			|| is_arg_reg(REGN) 
+			|| is_return_val_reg(REGN)
+			|| (REGN>=28 && REGN<=31))
+		return IITB_YES;
+	return IITB_NO;
+}
+
+int
+is_caller_saved_reg(int REGN)
+{
+        if((REGN>=8 && REGN<=15)||(REGN==24)||(REGN==25))
+                return IITB_YES;
+        return IITB_NO;
+}
+
+int
+is_callee_saved_reg(int REGN)
+{
+        if((REGN>=16 && REGN<=23))
+                return IITB_YES;
+        return IITB_NO;
+}
+
+int
+is_arg_reg(int REGN)
+{
+        if( (REGN>=4 && REGN<=7))
+                return IITB_YES;
+        return IITB_NO;
+}
+
+int
+is_return_val_reg(int REGN)
+{
+        if((REGN==2) || (REGN==3))
+                return IITB_YES;
+        return IITB_NO;
+}
+
 /* Functions related to activation records could be empty in this level, but we have
  * chosen to define activation records completely and hence, functions have been 
  * defined fully.*/
@@ -136,8 +241,11 @@ spim_epilogue()
 #define TARGET_ASM_GLOBALIZE_LABEL \
 spim_asm_globalize_label
 
-#undef TARGET_LEGITIMATE_ADDRESS_P
-#define TARGET_LEGITIMATE_ADDRESS_P spim_legitimate_address_p
+
+#undef TARGET_ASM_DESTRUCTOR
+#define TARGET_ASM_DESTRUCTOR NULL
+#undef TARGET_ASM_CONSTRUCTOR
+#define TARGET_ASM_CONSTRUCTOR NULL
 
 void
 spim_asm_globalize_label(FILE *stream, const char *name)
@@ -146,13 +254,12 @@ spim_asm_globalize_label(FILE *stream, const char *name)
 	return 0;
 }
 
-static bool
-spim_legitimate_address_p (machine_mode mode, rtx x, bool strict_p)
+
+void
+initialize_trampoline()
 {
-	return x;
+        return;
 }
-
-
 
 
 struct gcc_target targetm = TARGET_INITIALIZER;

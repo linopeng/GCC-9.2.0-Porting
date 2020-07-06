@@ -77,6 +77,27 @@
  1,1,1,1, \
  1,1,1,1}
 
+/* Number of consecutive hard registers required to hold 
+ * value of given mode, starting from register REGNO. */
+#define HARD_REGNO_NREGS(REGNO, MODE) \
+((GET_MODE_SIZE (MODE) + UNITS_PER_WORD - 1)  \
+               / UNITS_PER_WORD)
+
+/* The following macro returns 1 if a  value of mode MODE can be held in
+ * register REGNO. If the mode is  double, it checks for register number
+ * and allows only if register has  even number, else returns 0. This is
+ * because for double  values, register with even number  is paired with
+ * the succeeding  odd numbered  register. For  single integer  mode, it
+ * allows all registers.*/
+#define HARD_REGNO_MODE_OK(REGN, MODE) \
+hard_regno_mode_ok (REGN, MODE)
+
+/* This  macro defines  if object  of mode2  can be  moved in  object of
+ * mode1. If the modes are same or they belong to same class (eg. int or
+ * float) and mode2 has size less than mode1, then we allow the move.*/
+#define MODES_TIEABLE_P(MODE1, MODE2) \
+modes_tieable_p (MODE1,MODE2)
+	
 /* The  additional  classes   defined  here  are  CALLER_SAVED_REGISTER,
  * CALLEE_SAVED_REGISTER  and BASE_REGISTER.  Others are  pre-defined by
  * GCC. */
@@ -90,7 +111,6 @@ enum reg_class \
 	ALL_REGS,\
 	LIM_REG_CLASSES \
    };
-
 
 #define N_REG_CLASSES LIM_REG_CLASSES
 
@@ -116,6 +136,14 @@ regno_reg_class(REGNO)
 BASE_REGS
 
 #define INDEX_REG_CLASS \
+NO_REGS
+
+/* Some  instructions  may  contrain  the set  of  acceptable  registers
+ * further through contraints like "r", "g" etc. in md files. Since this
+ * is irrelevant  at this level,  currently no constraint  character has
+ * been defined for  various register classes and for  any character, we
+ * return matched class to be NO_REGS. */
+#define REG_CLASS_FROM_LETTER(ch)\
 NO_REGS
 
 /* Currently we assume any register can be used as base register. But in
@@ -186,7 +214,8 @@ CLASS
 
 #define FRAME_GROWS_DOWNWARD 1
 
-
+#define STARTING_FRAME_OFFSET \
+starting_frame_offset ()
 
 #define STACK_POINTER_OFFSET \
 0
@@ -206,7 +235,6 @@ HARD_FRAME_POINTER_REGNUM
 /*Anyway this is dummy pointer, and is always eliminated to hard frame pointer.*/
 #define FRAME_POINTER_REGNUM \
 1
-
 
 
 /* This macro was defined in level 0.0. But now that we have hard frame pointer, due
@@ -233,7 +261,8 @@ DEPTH=initial_frame_pointer_offset (DEPTH)*/
 
 /* Currently, arguments  are passed  on stack. Irrelevant  because there
  * are no function calls in this level. */
-
+#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
+0
 
 #define FUNCTION_ARG_REGNO_P(r) /* Irrelevant in this level */ \
 0
@@ -249,7 +278,8 @@ int
 CUM = 0;\
 }
 
-
+#define FUNCTION_ARG_ADVANCE(cum, mode, type, named) \
+cum++
 
 #define FUNCTION_VALUE(valtype, func)\
 function_value()
@@ -265,7 +295,8 @@ function_value()
  * ------------------------------------------------------------------------------*/
 
 /* To validate use of labels as symbolic references or numeric addresses */
-#define CONSTANT_ADDRESS_P(X) (CONSTANT_P(X) && GET_CODE(X)!=CONST_DOUBLE && GET_CODE(X)!=CONST_VECTOR)
+#define CONSTANT_ADDRESS_P(X) \
+constant_address_p(X)
 
 /* Since we don't have base indexed mode, we do not need more than one 
  * register for any address. */
@@ -306,7 +337,7 @@ reg_ok_for_index_p1(x)
 reg_ok_for_index_p2(x) 
 #endif
 
-
+#define GO_IF_MODE_DEPENDENT_ADDRESS(addr,label) 
 
 /* ------------------------------------------------------------------------------*
  * 			Assembly Output Format                                   *
@@ -375,12 +406,15 @@ function_profiler(file,lab)
  * mode), no  constant value is  defined. Later  on we will  define this
  * macro depending  upon constant  values permitted in  addressing modes
  * supported.*/
-
+#define CONST_OK_FOR_LETTER_P(VALUE, CH)                               /* D */ \
+0
 
 /* Double is not supported in level0. */
+#define CONST_DOUBLE_OK_FOR_CONSTRAINT_P(op,ch,p)                      /* D */ \
+0
 
-
-
+#define TRULY_NOOP_TRUNCATION(in,out) \
+1
 
 /* To support  variants of targets  which can be chosen  through command        
  * line arguments */
@@ -400,9 +434,8 @@ do                                            \
 /* This macro has been defined to eliminate call to __main function from `main'. */
 #define HAS_INIT_SECTION
 
-#define TRAMPOLINE_SIZE 32
+#define TRAMPOLINE_SIZE 32 
 
-
-
-
+#define LEGITIMATE_CONSTANT_P(x) \
+legitimate_constant_p(x)
 
