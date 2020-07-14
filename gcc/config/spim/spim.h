@@ -38,7 +38,6 @@
 
 #define SLOW_BYTE_ACCESS 0
 
-#define CASE_VECTOR_MODE SImode
 
 /* ------------------------------------------------------------------------------*
  * 			Registers and their usage conventions 			 *
@@ -354,6 +353,8 @@ function_profiler(file,lab)
  "$gp","$sp","$fp","$ra", \
 }
 
+/* Globalizing directive for a label.  */
+#define GLOBAL_ASM_OP "\t.globl\t"
 
 #define TEXT_SECTION_ASM_OP                                               \
 "\t.text"
@@ -402,7 +403,10 @@ do                                            \
 
 #define TRAMPOLINE_SIZE 32
 
+#define CASE_VECTOR_MODE SImode
 
 
 
+// Add with %(/{ can be used where define in final.c file
+//#define ASSEMBLER_DIALECT 1
 

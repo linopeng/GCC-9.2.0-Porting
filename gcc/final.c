@@ -1952,7 +1952,7 @@ static void
 final_1 (rtx_insn *first, FILE *file, int seen, int optimize_p)
 {
   rtx_insn *insn, *next;
-
+  const rtx_insn *tmp_rtx;
   /* Used for -dA dump.  */
   basic_block *start_to_bb = NULL;
   basic_block *end_to_bb = NULL;
@@ -1960,7 +1960,7 @@ final_1 (rtx_insn *first, FILE *file, int seen, int optimize_p)
   int bb_seqn = 0;
 
   last_ignored_compare = 0;
-
+  fprintf(stderr,"\nstart -----------------------------\n");
   if (HAVE_cc0)
     for (insn = first; insn; insn = NEXT_INSN (insn))
       {
@@ -1968,6 +1968,9 @@ final_1 (rtx_insn *first, FILE *file, int seen, int optimize_p)
 	   jumps to each branch only reached from one place.  */
 	if (optimize_p && JUMP_P (insn))
 	  {
+
+	    //print_rtl_single(stderr,insn);
+
 	    rtx lab = JUMP_LABEL (insn);
 	    if (lab && LABEL_P (lab) && LABEL_NUSES (lab) == 1)
 	      {
@@ -2018,6 +2021,9 @@ final_1 (rtx_insn *first, FILE *file, int seen, int optimize_p)
 
       dump_basic_block_info (file, insn, start_to_bb, end_to_bb,
                              bb_map_size, &bb_seqn);
+     print_rtl(stderr,insn);
+     fprintf(stderr,"line : %d \n ",insn_line(insn));
+     printf("\n");
       insn = final_scan_insn (insn, file, optimize_p, 0, &seen);
     }
 

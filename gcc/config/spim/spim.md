@@ -43,7 +43,7 @@
         }
 )
 
-(define_insn "IITB_return"
+(define_insn "abc_return"
 	[(return)]
 	""
 	"jr \\t\\$ra"
@@ -71,7 +71,7 @@
 (define_insn "nop"
  [(const_int 0)]
  ""
- "%(nop%)"
+ ""
 )
 
 
