@@ -2021,9 +2021,9 @@ final_1 (rtx_insn *first, FILE *file, int seen, int optimize_p)
 
       dump_basic_block_info (file, insn, start_to_bb, end_to_bb,
                              bb_map_size, &bb_seqn);
-     print_rtl(stderr,insn);
-     fprintf(stderr,"line : %d \n ",insn_line(insn));
-     printf("\n");
+     //print_rtl(stderr,insn);
+     //fprintf(stderr,"line : %d \n ",insn_line(insn));
+     //printf("\n");
       insn = final_scan_insn (insn, file, optimize_p, 0, &seen);
     }
 

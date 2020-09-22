@@ -3790,7 +3790,10 @@ emit_move_insn (rtx x, rtx y)
       && SET_DEST (set) == x
       && ! rtx_equal_p (y_cst, SET_SRC (set)))
     set_unique_reg_note (last_insn, REG_EQUAL, copy_rtx (y_cst));
-
+  //printf("\n");
+  //print_rtl(stderr,last_insn);
+  //fprintf(stderr,"line : %d \n ",insn_line(last_insn));
+  //printf("\n");
   return last_insn;
 }
 

@@ -7,14 +7,12 @@ extern int non_strict_base_reg (int REGN);
 extern int is_caller_saved_reg (int REGN);
 extern int is_callee_saved_reg (int REGN);
 extern int is_general_reg (int REGN);
-extern void spim_asm_internal_label (FILE *stream, const char *prefix, unsigned long labelno);
+extern void spim_asm_internal_label (FILE *stream, const char *prefix, unsigned int labelno);
 extern void spim_asm_globalize_label (FILE *stream, const char *name);
 extern rtx spim_struct_value_rtx (tree fndecl, int incoming);
 extern enum reg_class regno_reg_class (int REGN);
-extern enum reg_class reg_class_from_letter  (char ch);
 extern int IITB_regno_ok_for_base_p  (int REGN);
 extern int regno_ok_for_index_p  (int REGN);
-extern int const_ok_for_letter_p (int VALUE,char CH);
 extern int initial_frame_pointer_offset  (int DEPTH);
 extern int registers_to_be_saved (void);
 extern int initial_elimination_offset (int from, int to);
@@ -34,6 +32,12 @@ extern void print_operand_address (FILE *STREAM,rtx X);
 extern void asm_generate_internal_label (char *STRING,char *PREFIX,int NUM);
 extern void asm_output_local (FILE *STREAM,char *NAME,int SIZE,int ROUNDED);
 extern void asm_output_common (FILE *STREAM,char *NAME,int SIZE,int ROUNDED);
+extern int asm_output_symbol_ref (FILE *stream, rtx sym);
 extern void function_profiler (FILE*asm_file,int labelno);
 extern void initialize_trampoline (void);
 extern void spim_epilogue (void);
+extern void spim_prologue (void);
+extern int constant_operand (rtx op, enum machine_mode mode);
+extern char* emit_asm_call (rtx operands[],int type);
+
+

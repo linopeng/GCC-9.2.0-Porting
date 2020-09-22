@@ -2469,7 +2469,9 @@ lra (FILE *f)
     {
       for (;;)
 	{
+//	  fprintf(stderr,"\nlra.c line : 2472 \n");
 	  bool reloads_p = lra_constraints (lra_constraint_iter == 0);
+	  
 	  /* Constraint transformations may result in that eliminable
 	     hard regs become uneliminable and pseudos which use them
 	     should be spilled.	 It is better to do it before pseudo

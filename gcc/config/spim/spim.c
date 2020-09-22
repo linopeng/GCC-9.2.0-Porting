@@ -36,13 +36,15 @@
 #include "cgraph.h"//
 #include "gimple.h"
 #include "builtins.h"
+#include "explow.h"
 
 #define IITB_YES 1
 #define IITB_NO 0
 
 /* This file should be included last.  */
 #include "target-def.h"										 
-					   
+		
+#define return_addr_rtx gen_rtx_REG(SImode,31)			   
 
 
 int
@@ -59,7 +61,9 @@ is_base_reg(int REGN)
 			|| is_callee_saved_reg(REGN) 
 			|| is_arg_reg(REGN) 
 			|| is_return_val_reg(REGN)
-			|| (REGN>=28 && REGN<=31))
+			|| (REGN>=28 && REGN<=31)
+			|| (REGN == 1)
+	)
 		return IITB_YES;
 	return IITB_NO;
 }
@@ -122,9 +126,16 @@ is_general_reg(int REGN)
 }
 
 void
-spim_asm_internal_label(FILE *stream, const char *prefix, unsigned long labelno)
+spim_asm_internal_label(FILE *stream, const char *prefix, unsigned int labelno)
 {
 	fprintf(stream,"%s%d:",prefix,labelno);
+	return;
+}
+
+void
+spim_asm_globalize_label(FILE *stream, const char *name)
+{
+	fprintf(stream,"\t.globl %s\n",name);
 	return;
 }
 
@@ -138,47 +149,74 @@ spim_struct_value_rtx(tree fndecl, int incoming)
 int
 hard_regno_mode_ok (int REGN, enum machine_mode MODE)
 {
-       return IITB_YES;
+	if(GET_MODE_CLASS(MODE) == MODE_INT)
+	{
+            if(GET_MODE_SIZE(MODE) >= UNITS_PER_WORD)  /*Double Integer value.*/
+            {
+                if(REGN >= 0 && REGN <= FIRST_PSEUDO_REGISTER && (REGN % 2) == 0)
+                     return IITB_YES;
+                return IITB_NO;
+            }
+            else
+            {
+                if(REGN >= 0 && REGN <= FIRST_PSEUDO_REGISTER)
+                    return IITB_YES;
+                return IITB_NO;
+            }
+        }
+	return IITB_NO;
 }
 
 int 
 modes_tieable_p(enum machine_mode MODE1, enum machine_mode MODE2)
 {
-         return IITB_YES;
+        if((MODE1 == MODE2)
+      		|| (GET_MODE_SIZE(MODE1) <= GET_MODE_SIZE(MODE2)
+                  && GET_MODE_CLASS(MODE1) == GET_MODE_CLASS(MODE2)))
+                return IITB_YES;
+        return IITB_NO;
 }
 
 enum reg_class
 regno_reg_class(int REGN)
 { 
-        return ALL_REGS;
-}
-
-enum reg_class
-reg_class_from_letter (char ch)
-{
-	return NO_REGS;
+        if(REGN==0)
+                return ZERO_REGS;
+        if(is_callee_saved_reg(REGN))
+                return CALLEE_SAVED_REGS;
+	if(is_caller_saved_reg(REGN))
+                return CALLER_SAVED_REGS;
+        if(is_base_reg(REGN))
+                return BASE_REGS;
+        if(is_general_reg(REGN))
+                return GENERAL_REGS;
+        return NO_REGS;
 }
 
 int
 IITB_regno_ok_for_base_p (int REGN)
 {
-        return IITB_YES;
+        if(is_base_reg(REGN) 
+                || (REGN >= FIRST_PSEUDO_REGISTER 
+                && is_base_reg(reg_renumber[REGN])))
+                return IITB_YES;
+        return IITB_NO;
 }
 
 int
 regno_ok_for_index_p (int REGN)
 {
+        if(is_index_reg(REGN) 
+                || (REGN >= FIRST_PSEUDO_REGISTER 
+			&& is_index_reg(reg_renumber[REGN])))
+                return IITB_YES;
         return IITB_NO;
 }
 
-int
-const_ok_for_letter_p(int VALUE,char CH)
-{
-	return IITB_NO;
-}
+
 
 int
-starting_frame_offset ()
+spim_starting_frame_offset (void)
 {
 	return 0;
 }
@@ -191,7 +229,7 @@ initial_frame_pointer_offset (int DEPTH)
 	return size;	
 }
 
-int registers_to_be_saved()
+int registers_to_be_saved(void)
 {
         int i,num;
         for(i=0,num=0;i<FIRST_PSEUDO_REGISTER;i++)
@@ -220,6 +258,10 @@ initial_elimination_offset(int from, int to)
 	{
 		return ((3+registers_to_be_saved())*4+get_frame_size());
 	}
+	else if(from == ARG_POINTER_REGNUM && to == HARD_FRAME_POINTER_REGNUM)
+        {
+                return 0;
+        }
 	else if(from == HARD_FRAME_POINTER_REGNUM && to == STACK_POINTER_REGNUM)
 	{
 		return ((3+registers_to_be_saved())*4+get_frame_size());
@@ -230,7 +272,7 @@ initial_elimination_offset(int from, int to)
 }
 
 rtx
-function_value ()
+function_value (void)
 {
 	//Return register is register 2 when value is of type SImode.
 	return (gen_rtx_REG(SImode,2));
@@ -251,6 +293,20 @@ constant_address_p (rtx X)
 int
 legitimate_address1(enum machine_mode MODE,rtx X)
 {
+	rtx op1,op2;
+	if(CONSTANT_ADDRESS_P(X))
+		return 1;
+	if(GET_CODE(X)==REG && is_base_reg(REGNO(X)))
+		return 1;
+	if(GET_CODE(X)==PLUS)
+	{
+		op1=XEXP(X,0);
+		op2=XEXP(X,1);
+		if(GET_CODE(op1)==REG && CONSTANT_ADDRESS_P(op2) && is_base_reg(REGNO(op1)))
+			return 1;
+		if(GET_CODE(op2)==REG && CONSTANT_ADDRESS_P(op1) && is_base_reg(REGNO(op2)))
+			return 1;
+	}
 	return 0;
 
 }
@@ -258,16 +314,23 @@ legitimate_address1(enum machine_mode MODE,rtx X)
 int
 legitimate_address2(enum machine_mode MODE,rtx X)
 {
-        
-rtx op1,op2;
+		
+	rtx op1,op2;
         if(CONSTANT_ADDRESS_P(X))
                 return 1;
-        
-	if(GET_CODE(X)==REG && non_strict_base_reg(REGNO(X)))
+		
+        if(GET_CODE(X)==REG && non_strict_base_reg(REGNO(X)))
                 return 1;
-        
-	   
-	return 0;
+        if(GET_CODE(X)==PLUS)
+        {
+                op1=XEXP(X,0);
+                op2=XEXP(X,1);
+                if(GET_CODE(op1)==REG && CONSTANT_ADDRESS_P(op2) && non_strict_base_reg(REGNO(op1)))
+                        return 1;
+                if(GET_CODE(op2)==REG && CONSTANT_ADDRESS_P(op1) && non_strict_base_reg(REGNO(op2)))
+                        return 1;
+        }
+        return 0;
 }
 
 
@@ -275,37 +338,60 @@ rtx op1,op2;
 int 
 reg_ok_for_base_p1(rtx x)
 {
-	return IITB_YES;
+	if(is_base_reg(REGNO(x)))
+		return IITB_YES;
+	return IITB_NO;
 }
 int
 reg_ok_for_base_p2(rtx x)
 {
-	return IITB_YES;
+	if(non_strict_base_reg(REGNO(x)))
+		return IITB_YES;
+	return IITB_NO;
 }
 
 /*Here also, strict and non-strict varients are needed.*/
 int 
 reg_ok_for_index_p1(rtx x)
 {
-	return IITB_NO;
-}
-int
-reg_ok_for_index_p2(rtx x)
-{
+	if(is_index_reg(REGNO(x)))
+		return IITB_YES;
 	return IITB_NO;
 }
 
 rtx 
 legitimize_address(rtx X,rtx OLDX, enum machine_mode MODE)
 {
+        rtx op1,op2,op;
+	op=NULL;
+        if(memory_address_p(MODE,X))
+               return X;
+	if(GET_CODE(X)==MEM && can_create_pseudo_p())
+		op = force_reg(MODE,X);
+	else if(GET_CODE(X)==PLUS && can_create_pseudo_p())
+	{
+		op1=XEXP(X,0);
+		op2=XEXP(X,1);
+		if(GET_CODE(op1)==REG && !CONSTANT_ADDRESS_P(op2))
+		{
+			op=force_reg(MODE,X);
+		}
+		else if(GET_CODE(op2)==REG && !CONSTANT_ADDRESS_P(op1))
+                {
+                        op=force_reg(MODE,X);
+                }
+	}
+	if(op!=NULL && memory_address_p(MODE,op))
+		return op;
 	return X;
 }
 
-
 int
-legitimate_constant_p (rtx X)
+reg_ok_for_index_p2(rtx x)
 {
-        return (GET_CODE(X)!= CONST_DOUBLE);
+	if(non_strict_index_reg(REGNO(x)))
+		return IITB_YES;
+	return IITB_NO;
 }
 
 void
@@ -323,18 +409,134 @@ asm_output_align(FILE *STREAM, int POWER)
 void
 asm_output_skip(FILE  *STREAM,int NBYTES)
 {
+	fprintf(STREAM,"\t.skip %u\n", NBYTES);
 }
 
 
 void
 print_operand(FILE *STREAM,rtx X,char CODE)
 {
+	rtx op;
+	switch(CODE)
+	{
+		case 0:/* Generally, if there is no code after % character, then
+			  it is considered as register operand. But, for safe case,
+			  at this place also, I am taking care of all other operands.*/
+			if(GET_CODE(X) == REG)
+			{
+				fprintf(STREAM,"%s",reg_names[XINT(X,0)]);
+				break;
+			}
+			else if(GET_CODE(X) == MEM)
+			{
+			        op=XEXP(X,0);
+		                PRINT_OPERAND_ADDRESS(STREAM,op);
+			}
+			else if(GET_CODE(X)==CONST_INT)
+	                {
+	                        fprintf(STREAM,"%d",XINT(X,0));
+	                }
+			else if(CONSTANT_ADDRESS_P(X))
+			{
+				PRINT_OPERAND_ADDRESS(STREAM,X);
+			}
+			else if((GET_CODE(X) == CONST_DOUBLE || GET_CODE(X) == CONST_INT))
+			{
+				if(GET_CODE(X)==LABEL_REF)
+				{
+					ASM_OUTPUT_LABELREF(STREAM,XSTR(X,0));
+				}
+				else
+				{
+					op=XEXP(X,0);
+					PRINT_OPERAND(STREAM,op,0);
+					printf("#Legitimate address");
+				}
+			}
+	                else
+	                {
+				  printf("other case"
+					  " in CODE = 0");
+	                }
+		break;
+		case 'm':
+			if(GET_CODE(X) != MEM)
+			{
+				printf("Invalid operand : Not a memory operand");
+				return;
+			}
+			op=XEXP(X,0);
+			PRINT_OPERAND_ADDRESS(STREAM,op);
+			break;
+		case 's':
+			if(GET_CODE(X)==SYMBOL_REF)
+			{
+				output_addr_const(STREAM,X);
+			}
+			else
+			{
+				printf("Other than symbol ref not allowed");
+			}
+			break;
+		default:
+			printf("In print operand default");
+	}
 }
 
 
 void
 print_operand_address(FILE *STREAM,rtx X)
 {
+	rtx op1,op2,temp;
+	int num;
+	switch(GET_CODE(X))
+	{
+		case SUBREG:
+			/*As in case of register indirect mode, where address 
+			  of operand is present in subreg.*/
+			fprintf(STREAM,"0(%s)",reg_names[REGNO(XEXP(X,0))]);
+			break;
+		case REG:
+			/*As in case of register indirect mode, address of operand
+			  in memory is persent in register REGNO(X).*/
+			fprintf(STREAM,"0(%s)",	reg_names[REGNO(X)]);
+			break;
+		case PLUS:
+			/*The address can be in base displacement or base - index
+			  form of addressing.*/
+			op1 = XEXP(X,0);
+			op2 = XEXP(X,1);
+			if(GET_CODE(op1) == CONST_INT 
+				&& (GET_CODE(op2) == REG 
+					|| GET_CODE(op2) == SUBREG))
+				/*base displacement*/
+			{
+				fprintf(STREAM,"%d(%s)", INTVAL(op1),
+						((GET_CODE(op2)==REG)
+						?reg_names[REGNO(op2)]
+						:reg_names[REGNO(XEXP(op2,0))]));
+			}
+			else if (GET_CODE(op2) == CONST_INT 
+					&& (GET_CODE(op1) == REG 
+						|| GET_CODE(op1) == SUBREG))
+				/*base displacement*/
+			{
+				fprintf(STREAM,"%d(%s)", INTVAL(op2),
+						((GET_CODE(op1) == REG)
+						?reg_names[REGNO(op1)]
+						:reg_names[REGNO(XEXP(op1,0))]));
+			}
+			break;
+		default:
+			if(CONSTANT_ADDRESS_P(X))
+			{
+				output_addr_const(STREAM,X);
+			}
+			else
+				fprintf(STREAM,"Coming in default part of" 
+						" print_operand_address");
+			break;
+	}
 }
 
 void
@@ -345,12 +547,31 @@ asm_generate_internal_label(char *STRING,char *PREFIX,int NUM)
 void
 asm_output_local(FILE *STREAM,char *NAME,int SIZE,int ROUNDED)
 {
+	fprintf(STREAM,"\t.reserve ");
+        assemble_name (STREAM, NAME);
+        fprintf (STREAM, ",%u,\"bss\"\n", SIZE);
 }
 
 void
 asm_output_common(FILE *STREAM,char *NAME,int SIZE,int ROUNDED)
 {
+	int i;
+	fprintf(STREAM, "\t.data\n");
+        assemble_name(STREAM,NAME);
+        fprintf(STREAM, ":\t.word \t");
+          for(i=0;i<SIZE/UNITS_PER_WORD;i++)
+          {
+                  fprintf(STREAM, "0 \t");
+          }
+          fprintf(STREAM,"\n");
 }
+
+int
+asm_output_symbol_ref(FILE *stream, rtx sym)
+{
+        //fprintf(stream,"_");
+        assemble_name(stream, XSTR((sym),0));
+} 
 
 void
 function_profiler(FILE*asm_file,int labelno)
@@ -364,11 +585,139 @@ initialize_trampoline()
 }
 
 void
-spim_epilogue()
+spim_prologue(void)
 {
-        emit_jump_insn(gen_abc_return());
+        int i,j;
+	
+        emit_move_insn(gen_rtx_MEM(SImode,plus_constant(Pmode,stack_pointer_rtx,-0)),return_addr_rtx);
+        emit_move_insn(gen_rtx_MEM(SImode,plus_constant(Pmode,stack_pointer_rtx,-4)),stack_pointer_rtx);
+        emit_move_insn(gen_rtx_MEM(SImode,plus_constant(Pmode,stack_pointer_rtx,-8)),hard_frame_pointer_rtx);
+        emit_move_insn(hard_frame_pointer_rtx, plus_constant(Pmode,stack_pointer_rtx,0));
+        for(i=0,j=4;i<FIRST_PSEUDO_REGISTER;i++)
+        {
+                if(df_regs_ever_live_p(i) && !call_used_regs[i] && !fixed_regs[i])
+                {
+                        emit_move_insn(gen_rtx_MEM(SImode,plus_constant(Pmode,hard_frame_pointer_rtx,-4*j,0)), gen_rtx_REG(SImode,i)); //definde plus_constant arg 3 offset
+                        j++;
+                }
+        }
+        emit_move_insn(stack_pointer_rtx, plus_constant(Pmode,hard_frame_pointer_rtx,-((3+j)*4+get_frame_size())) );
 }
 
+void
+spim_epilogue(void)
+{
+        int i,j;
+       
+        for(i=0,j=3;i<FIRST_PSEUDO_REGISTER;i++) /*Restore all the callee-registers from stack frame*/
+        {
+                if(df_regs_ever_live_p(i) && !call_used_regs[i] && !fixed_regs[i])
+                {
+                        emit_move_insn(gen_rtx_REG(SImode,i), 		 gen_rtx_MEM(SImode,plus_constant(Pmode,hard_frame_pointer_rtx,-4*j)));
+                        j++;
+                }
+        }
+	/*Restore stack pointer*/
+	emit_move_insn(stack_pointer_rtx, plus_constant(Pmode,hard_frame_pointer_rtx,0));
+	/*Restore frame pointer*/
+	emit_move_insn(hard_frame_pointer_rtx, gen_rtx_MEM(SImode,plus_constant(Pmode,stack_pointer_rtx,-8)));
+	/*Restore return address*/
+	emit_move_insn(return_addr_rtx, gen_rtx_MEM(SImode,plus_constant(Pmode,stack_pointer_rtx,0)));
+	/*Jump instruction*/
+	emit_jump_insn(gen_IITB_return());
+}
+
+char*
+emit_asm_call(rtx operands[],int type)
+															 
+{
+	if(type == 0) /*call*/
+	{
+	        if(GET_CODE(XEXP(operands[0],0))==REG)
+        	        return "jalr %0, \\$ra";
+	        if(memory_address_p(SImode,XEXP(operands[0],0)))
+        	        return "jal %0";
+	}
+	else /*call-value*/
+	{
+		if(GET_CODE(XEXP(operands[1],0))==REG)
+                        return "jalr %1, \\$ra";
+                if(memory_address_p(SImode,XEXP(operands[1],0)))
+			return "jal %1";
+	}				   
+}
+
+/* Implement TARGET_HARD_REGNO_NREGS.  */
+static unsigned int
+spim_hard_regno_nregs (unsigned int regno, machine_mode mode)
+{
+  	return (GET_MODE_SIZE (mode) + UNITS_PER_WORD - 1) / UNITS_PER_WORD;
+}
+
+/* Implement TARGET_HARD_REGNO_MODE_OK.  */
+static bool
+spim_hard_regno_mode_ok (unsigned int regno, machine_mode mode)
+{
+        if(GET_MODE_CLASS(mode) == MODE_INT)
+	{
+            if(GET_MODE_SIZE(mode) >= UNITS_PER_WORD)  /*Double Integer value.*/
+            {
+                if(regno >= 0 && regno <= FIRST_PSEUDO_REGISTER && (regno % 2) == 0)
+                     return IITB_YES;
+                return IITB_NO;
+            }
+            else
+            {
+                if(regno >= 0 && regno <= FIRST_PSEUDO_REGISTER)
+                    return IITB_YES;
+                return IITB_NO;
+            }
+        }
+	return IITB_NO;
+}
+
+/* Implement TARGET_TRULY_NOOP_TRUNCATION.  */
+static bool
+spim_truly_noop_truncation (poly_uint64 outprec, poly_uint64 inprec)
+{
+  return 1;
+}
+
+/* Implement TARGET_LEGITIMATE_CONSTANT_P.  */
+static bool
+spim_legitimate_constant_p (machine_mode mode ATTRIBUTE_UNUSED, rtx x)
+{
+  return (GET_CODE(x) == CONST_DOUBLE || GET_CODE(x) == CONST_INT);
+}
+
+/* Implement TARGET_MODES_TIEABLE_P.  */
+static bool
+spim_modes_tieable_p (machine_mode mode1, machine_mode mode2)
+{
+  	if((mode1 == mode2)
+      		|| (GET_MODE_SIZE(mode1) <= GET_MODE_SIZE(mode2)
+                  && GET_MODE_CLASS(mode1) == GET_MODE_CLASS(mode2)))
+                return IITB_YES;
+        return IITB_NO;
+}
+
+/* Implement TARGET_FUNCTION_ARG.  */
+
+static rtx
+spim_function_arg (cumulative_args_t cum_v, machine_mode mode,
+		   const_tree type, bool named)
+{
+	return 0;
+}
+
+/* Implement TARGET_FUNCTION_ARG_ADVANCE.  */
+
+static void
+spim_function_arg_advance (int cum, machine_mode mode,
+			   const_tree type, bool named)
+{
+	cum++;
+}
 
 /* Initialize the GCC target structure. 
  * All macros taged as target_hook are defined here, instead of defining
@@ -386,6 +735,39 @@ spim_asm_internal_label
 #undef TARGET_ASM_CONSTRUCTOR
 #define TARGET_ASM_CONSTRUCTOR NULL
 
+#undef TARGET_ASM_ALIGNED_SI_OP 
+#define TARGET_ASM_ALIGNED_SI_OP "\t.word\t"
+
+#undef TARGET_ASM_ALIGNED_DI_OP 
+#define TARGET_ASM_ALIGNED_DI_OP "\t.word\t"
+
+#undef TARGET_ASM_GLOBALIZE_LABEL
+#define TARGET_ASM_GLOBALIZE_LABEL \
+spim_asm_globalize_label
+
+#undef TARGET_HARD_REGNO_NREGS
+#define TARGET_HARD_REGNO_NREGS spim_hard_regno_nregs
+
+#undef TARGET_HARD_REGNO_MODE_OK
+#define TARGET_HARD_REGNO_MODE_OK spim_hard_regno_mode_ok
+
+#undef TARGET_TRULY_NOOP_TRUNCATION
+#define TARGET_TRULY_NOOP_TRUNCATION spim_truly_noop_truncation
+
+#undef TARGET_LEGITIMATE_CONSTANT_P
+#define TARGET_LEGITIMATE_CONSTANT_P spim_legitimate_constant_p
+
+#undef TARGET_MODES_TIEABLE_P
+#define TARGET_MODES_TIEABLE_P spim_modes_tieable_p
+
+#undef TARGET_STARTING_FRAME_OFFSET
+#define TARGET_STARTING_FRAME_OFFSET spim_starting_frame_offset
+
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG spim_function_arg
+
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE spim_function_arg_advance
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

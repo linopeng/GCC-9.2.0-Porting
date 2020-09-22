@@ -82,6 +82,7 @@
 enum reg_class \
 {\
 	NO_REGS,\
+	ZERO_REGS,\
 	CALLER_SAVED_REGS,\
 	CALLEE_SAVED_REGS,\
 	BASE_REGS,\
@@ -96,6 +97,7 @@ enum reg_class \
 #define REG_CLASS_NAMES \
 {\
 	"NO_REGS",\
+	"ZERO_REGS",\
 	"CALLER_SAVED_REGS",\
 	"CALLEE_SAVED_REGS",\
 	"BASE_REGS",\
@@ -105,7 +107,8 @@ enum reg_class \
 
 #define REG_CLASS_CONTENTS  /* We have included un-available registers also */ \
                             /* because in this level, it is irrelevant      */ \
-{0x00000000,0x0200ff00,0x00ff0000,0xf2fffffc,0xffffffff,0xffffffff}
+{0x00000000,0x00000001,0x0200ff00,0x00ff0000,0xf2fffffc,0xfffffffe,0xffffffff}/*some changes*/
+
 
 
 #define REGNO_REG_CLASS(REGNO) \
@@ -121,7 +124,7 @@ NO_REGS
  * later levels,  we will define  the registers acording  to appropriate
  * register class.*/
 #define REGNO_OK_FOR_BASE_P(REGNO)\
-1
+IITB_regno_ok_for_base_p (REGNO)
 
 /* Spim does not support indexed addressing mode. */
 #define REGNO_OK_FOR_INDEX_P(REGNO)\
@@ -181,11 +184,9 @@ CLASS
   register allocation.
 */
 
-#define STACK_GROWS_DOWNWARD 1
+#define STACK_GROWS_DOWNWARD 0
 
-#define FRAME_GROWS_DOWNWARD 1
-
-
+#define FRAME_GROWS_DOWNWARD 0
 
 #define STACK_POINTER_OFFSET \
 0
@@ -212,8 +213,8 @@ HARD_FRAME_POINTER_REGNUM
  * to variable sized fields between local variable frame and arguments, frame pointer
  * must be reduced to hard frame pointer register, which requires recalculation of
  * frame pointer offsets. Hence, we remove this macro.*/
-/*#define INITIAL_FRAME_POINTER_OFFSET(DEPTH)\
-DEPTH=initial_frame_pointer_offset (DEPTH)*/
+/* #define INITIAL_FRAME_POINTER_OFFSET(DEPTH)\
+DEPTH=initial_frame_pointer_offset (DEPTH) */
 
 #define ELIMINABLE_REGS \
 {{FRAME_POINTER_REGNUM,      STACK_POINTER_REGNUM}, \
@@ -226,13 +227,15 @@ DEPTH=initial_frame_pointer_offset (DEPTH)*/
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, VAR) \
 (VAR) = initial_elimination_offset(FROM, TO)
 
+/* Function pops none of its arguments, so it is caller's responsibility 
+ * to pop off the parameters. */
+/*
+#define RETURN_POPS_ARGS(FUN, TYPE, SIZE) \
+0
+*/
+
 #define ACCUMULATE_OUTGOING_ARGS \
 0
-
-
-/* Currently, arguments  are passed  on stack. Irrelevant  because there
- * are no function calls in this level. */
-
 
 #define FUNCTION_ARG_REGNO_P(r) /* Irrelevant in this level */ \
 0
@@ -247,7 +250,6 @@ int
 {\
 CUM = 0;\
 }
-
 
 
 #define FUNCTION_VALUE(valtype, func)\
@@ -332,8 +334,17 @@ reg_ok_for_index_p2(x)
 #define ASM_OUTPUT_COMMON(STREAM, NAME, SIZE, ROUNDED)                    \
          asm_output_common(STREAM, NAME, SIZE, ROUNDED)
 
+#define ASM_OUTPUT_SYMBOL_REF(stream, sym)                                \
+        asm_output_symbol_ref(stream, sym)
+
 #define FUNCTION_PROFILER(file,lab) \
 function_profiler(file,lab)
+
+
+/* This is how to output a string.  
+#undef ASM_OUTPUT_ASCII
+#define ASM_OUTPUT_ASCII(STREAM, STRING, LEN)				\
+  spim_output_ascii (STREAM, STRING, LEN, "\t.asciiz\t")*/
 
 #define ASM_APP_ON                                                        \
 	"#APP"
@@ -377,16 +388,6 @@ function_profiler(file,lab)
  * macro depending  upon constant  values permitted in  addressing modes
  * supported.*/
 
-
-/* Double is not supported in level0. */
-
-
-
-
-/* To support  variants of targets  which can be chosen  through command        
- * line arguments */
-//#define TARGET_SWITCHES                                              /* D */ \
-// {"", 0, ""}
 
 
 #define TARGET_CPU_CPP_BUILTINS()\
