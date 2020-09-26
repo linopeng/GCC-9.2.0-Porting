@@ -3,7 +3,7 @@
    Copyright (C) 1997-2018 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Richard Henderson (rth@cygnus.com) and
-		  Jakub Jelinek (jj@ultra.linux.cz).
+                  Jakub Jelinek (jj@ultra.linux.cz).
 
    The GNU C Library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -28,24 +28,14 @@
    License along with the GNU C Library; if not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "soft-fp.h"
 #include "single.h"
+#include "soft-fp.h"
+#include "posit_func_32.h"
 
-SFtype
-__subsf3 (SFtype a, SFtype b)
-{
-  FP_DECL_EX;
-  FP_DECL_S (A);
-  FP_DECL_S (B);
-  FP_DECL_S (R);
-  SFtype r;
+posit32_t __subsf3(posit32_t a, posit32_t b) {
+  Sposit32_t r;
 
-  FP_INIT_ROUNDMODE;
-  FP_UNPACK_SEMIRAW_S (A, a);
-  FP_UNPACK_SEMIRAW_S (B, b);
-  FP_SUB_S (R, A, B);
-  FP_PACK_SEMIRAW_S (r, R);
-  FP_HANDLE_EXCEPTIONS;
+  r=p32_sub(a,b);
 
   return r;
 }

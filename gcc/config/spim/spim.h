@@ -411,3 +411,4 @@ do                                            \
 // Add with %(/{ can be used where define in final.c file
 //#define ASSEMBLER_DIALECT 1
 
+#define TARGET_SOFT_FLOAT

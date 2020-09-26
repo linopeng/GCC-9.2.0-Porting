@@ -27,7 +27,8 @@
 #include "tree.h"
 #include "realmpfr.h"
 #include "dfp.h"
-
+#include "c_convertDecToPosit16.c"
+#include "c_convertDecToPosit32.c"
 /* The floating point model used internally is not exactly IEEE 754
    compliant, and close to the description in the ISO C99 standard,
    section 5.2.4.2.2 Characteristics of floating types.
@@ -2927,6 +2928,7 @@ encode_ieee_single (const struct real_format *fmt, long *buf,
 {
   unsigned long image, sig, exp;
   unsigned long sign = r->sign;
+  posit32_t temp_p32;
   bool denormal = (r->sig[SIGSZ-1] & SIG_MSB) == 0;
 
   image = sign << 31;
@@ -2979,7 +2981,9 @@ encode_ieee_single (const struct real_format *fmt, long *buf,
       gcc_unreachable ();
     }
 
-  buf[0] = image;
+  //was buf[0] = image;
+  temp_p32 = convertFloatToP32(*(float*)&image);
+  buf[0] = *(long*)&temp_p32 & 0x00000000ffffffff ;
 }
 
 static void
@@ -4692,6 +4696,7 @@ encode_ieee_half (const struct real_format *fmt, long *buf,
 {
   unsigned long image, sig, exp;
   unsigned long sign = r->sign;
+  posit16_t temp_p16;
   bool denormal = (r->sig[SIGSZ-1] & SIG_MSB) == 0;
 
   image = sign << 15;
@@ -4743,8 +4748,9 @@ encode_ieee_half (const struct real_format *fmt, long *buf,
     default:
       gcc_unreachable ();
     }
-
-  buf[0] = image;
+  //was buf[0] = image;
+  temp_p16 = convertFloatToP16(*(float*)&image);
+  buf[0] = *(long*)&temp_p16 & 0x000000000000ffff ;
 }
 
 /* Decode half-precision floats.  This routine is used both for the IEEE

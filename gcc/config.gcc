@@ -1325,7 +1325,7 @@ csky-*-*)
 	    case ${with_float} in
 		soft | hard) ;;
 		*) echo
-		    "Unknown floating point type used in --with-float=$with_float"
+cs		    "Unknown floating point type used in --with-float=$with_float"
 		    exit 1
 		    ;;
 	    esac
@@ -3741,7 +3741,7 @@ fi
 # Infer a default setting for --with-float.
 if test x$with_float = x; then
   case ${target} in
-    mips64r5900-*-* | mips64r5900el-*-* | mipsr5900-*-* | mipsr5900el-*-*)
+    spim*-* | mips64r5900-*-* | mips64r5900el-*-* | mipsr5900-*-* | mipsr5900el-*-*)
       # The R5900 doesn't support 64-bit float.  32-bit float doesn't
       # comply with IEEE 754.
       with_float=soft
