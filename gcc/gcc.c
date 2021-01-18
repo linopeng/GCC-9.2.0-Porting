@@ -3915,6 +3915,11 @@ driver_handle_option (struct gcc_options *opts,
 	exit (0);
       }
 
+    case OPT_Wposit:
+      fprintf(stderr,"Convert float32 to posit32\n");
+      //printf("Convert float to posit\n");
+      exit(0);
+
     case OPT_dumpversion:
       printf ("%s\n", spec_version);
       exit (0);

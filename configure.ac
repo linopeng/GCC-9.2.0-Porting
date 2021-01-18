@@ -1184,6 +1184,9 @@ case "${target}" in
   mips*-*-*)
     noconfigdirs="$noconfigdirs gprof"
     ;;
+  spim*-*-*)
+    noconfigdirs="$noconfigdirs gprof"
+    ;;
   nvptx*-*-*)
     noconfigdirs="$noconfigdirs target-libssp target-libstdc++-v3 target-libobjc"
     ;;

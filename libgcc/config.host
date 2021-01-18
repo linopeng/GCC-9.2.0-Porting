@@ -163,6 +163,10 @@ mips*-*-*)
 	fi
 	tmake_file="${tmake_file} t-softfp"
 	;;
+spim*-*-*)
+	cpu_type=spim
+	tmake_file="${tmake_file} spim/t-spim t-softfp t-softfp-sfdf"
+	;;
 nds32*-*)
 	cpu_type=nds32
 	;;

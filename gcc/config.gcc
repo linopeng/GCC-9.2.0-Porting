@@ -1325,7 +1325,7 @@ csky-*-*)
 	    case ${with_float} in
 		soft | hard) ;;
 		*) echo
-cs		    "Unknown floating point type used in --with-float=$with_float"
+		    "Unknown floating point type used in --with-float=$with_float"
 		    exit 1
 		    ;;
 	    esac
@@ -2155,14 +2155,13 @@ mcore-*-elf)
 	inhibit_libc=true
 	;;
 spim*-*-*)
-	gas=no
-	gnu_ld=no
-        file_base="`echo ${target} | sed 's/-.*$//'`"
-        tm_file="${cpu_type}/${file_base}.h"
-        md_file="${cpu_type}/${file_base}.md"
-        out_file="${cpu_type}/${file_base}.c"
-        tm_p_file="${cpu_type}/${file_base}-protos.h"
-        ;;
+    file_base="`echo ${target} | sed 's/-.*$//'`"
+    tm_file="${tm_file} dbxelf.h elfos.h gnu-user.h glibc-stdint.h"
+    md_file="${cpu_type}/${file_base}.md"
+    out_file="${cpu_type}/${file_base}.c"
+    tm_p_file="${cpu_type}/${file_base}-protos.h"
+    tmake_file="${tmake_file} spim/t-spim"
+    ;;
 microblaze*-linux*)
 	case $target in
 		microblazeel-*)
@@ -3741,7 +3740,7 @@ fi
 # Infer a default setting for --with-float.
 if test x$with_float = x; then
   case ${target} in
-    spim*-* | mips64r5900-*-* | mips64r5900el-*-* | mipsr5900-*-* | mipsr5900el-*-*)
+    mips64r5900-*-* | mips64r5900el-*-* | mipsr5900-*-* | mipsr5900el-*-*)
       # The R5900 doesn't support 64-bit float.  32-bit float doesn't
       # comply with IEEE 754.
       with_float=soft
@@ -4377,7 +4376,19 @@ case "${target}" in
 			esac
 		fi
 		;;
+	spim*-*-*)
+		supported_defaults="float"
 
+		case ${with_float} in
+		"" | soft | hard)
+			# OK
+			;;
+		*)
+			echo "Unknown floating point type used in --with-float=$with_float" 1>&2
+			exit 1
+			;;
+		esac
+		;;
 	mips*-*-*)
 		supported_defaults="abi arch arch_32 arch_64 float fpu nan fp_32 odd_spreg_32 tune tune_32 tune_64 divide llsc mips-plt synci lxc1-sxc1 madd4"
 

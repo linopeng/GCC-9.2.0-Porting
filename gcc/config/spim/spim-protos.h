@@ -39,5 +39,12 @@ extern void spim_epilogue (void);
 extern void spim_prologue (void);
 extern int constant_operand (rtx op, enum machine_mode mode);
 extern char* emit_asm_call (rtx operands[],int type);
-
-
+extern const char* spim_output_jump (rtx *operands);
+extern const char* spim_output_move (rtx dest, rtx src);
+extern bool spim_legitimize_move (machine_mode mode, rtx dest, rtx src);
+extern void spim_init_cumulative_args (CUMULATIVE_ARGS *cum, tree fntype);
+#ifdef RTX_CODE
+extern char* conditional_insn (enum rtx_code code,rtx operands[], int isRev);
+#endif
+extern rtx compare_op0;
+extern rtx compare_op1;

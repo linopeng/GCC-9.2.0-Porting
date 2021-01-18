@@ -4878,21 +4878,18 @@ lra_constraints (bool first_p)
   EXECUTE_IF_SET_IN_BITMAP (equiv_insn_bitmap, 0, uid, bi)
     lra_push_insn_by_uid (uid);
   min_len = lra_insn_stack_length ();
-//  fprintf(stderr,"\n min_len= %d \n",min_len);
-//  int cou = 0;
+  //fprintf(stderr,"\n ============================= min_len= %d =============================\n",min_len);
   new_insns_num = 0;
   last_bb = NULL;
   changed_p = false;
   while ((new_min_len = lra_insn_stack_length ()) != 0)
     {
-//      fprintf(stderr,"\n ============================= new_insns_num = %d \n",new_insns_num);
+      //fprintf(stderr,"\n ============================= new_insns_num = %d ============================= \n",new_insns_num);
       curr_insn = lra_pop_insn ();
-//      print_rtl(stderr,curr_insn);
-//      fprintf(stderr,"=============================");
-//     int ccu_insn = lra_insn_stack_length ();
-//      fprintf(stderr,"\n pop_num_insn = %d \n",ccu_insn);
-//      print_rtl(stderr,curr_insn);
-//      fprintf(stderr,"\n ============================= new_min_len= %d \n",new_min_len);
+     //print_rtl(stderr,curr_insn);
+    int ccu_insn = lra_insn_stack_length ();
+     //fprintf(stderr,"\n ============================= pop_num_insn = %d =============================\n",ccu_insn);
+     //fprintf(stderr,"\n ============================= new_min_len= %d =============================\n",new_min_len);
       --new_min_len;
       curr_bb = BLOCK_FOR_INSN (curr_insn);
       if (curr_bb != last_bb)
@@ -4903,7 +4900,7 @@ lra_constraints (bool first_p)
 
       if (min_len > new_min_len)
 	{
-//	  fprintf(stderr,"\n ============================= check if min_len > new_min_len is true or not ------------\n");
+	  //fprintf(stderr,"\n ============================= check if min_len > new_min_len is true or not =============================\n");
 	  min_len = new_min_len;
 	  new_insns_num = 0;
 	}
@@ -4982,8 +4979,6 @@ lra_constraints (bool first_p)
 		  continue;
 		}
 	    }
-//	  cou++;
-//	  fprintf(stderr,"\n ============================= Loop count = %d \n",cou);
 	  curr_id = lra_get_insn_recog_data (curr_insn);
 	  curr_static_id = curr_id->insn_static_data;
 	  init_curr_insn_input_reloads ();

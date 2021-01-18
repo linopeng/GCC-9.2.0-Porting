@@ -68,53 +68,28 @@
 	[(set (match_operand:SI 0 "nonimmediate_operand" "")
 	      (match_operand:SI 1 "general_operand" "")
 	)]
-""
-{
-	if(GET_CODE(operands[1])==CONST_INT && INTVAL(operands[1])==0)
+	""
+	{
+	  if(GET_CODE(operands[1])==CONST_INT && INTVAL(operands[1])==0)
 	  {
 	    emit_insn(gen_IITB_move_zero(operands[0],gen_rtx_REG(SImode,0)));
 	    DONE;
-  	  }
-	  
+	  }
+	  else
 	  if(GET_CODE(operands[0])==MEM && GET_CODE(operands[1])!=REG)
 	  {
 	    
 	    if(can_create_pseudo_p())
 	    {
-		    operands[1]=force_reg(SImode,operands[1]);
+		operands[1]=force_reg(SImode,operands[1]);
 	    }
-  	  }
-
-	if(GET_CODE(operands[0])==MEM && GET_CODE(operands[1])==REG)
-	{
-	    emit_insn (gen_store_word (operands[0], operands[1]));
-	    DONE;
-	}
-
-	if(GET_CODE(operands[0])==REG && GET_CODE(operands[1])==MEM)
-	{
-	    emit_insn (gen_load_word (operands[0], operands[1]));
-	    DONE;
-	}
-
-	if(GET_CODE(operands[0])==REG && GET_CODE(operands[1])==CONST_INT)
-	{
-	    emit_insn (gen_constant_load (operands[0], operands[1]));
-	    DONE;
-	}
-
-	if(GET_CODE(operands[0])==REG && GET_CODE(operands[1])==REG)
-	{
-	    emit_insn (gen_move_regs (operands[0], operands[1]));
-	    DONE;
-	}
-}
+	  }
+ 	}
 )
-
 
 ;;Load patterns
 
-(define_insn "load_word"
+(define_insn "*load_word"
 	[(set (match_operand:SI 0 "register_operand" "=r")
 	      (match_operand:SI 1 "memory_operand" "m")
 	)]
@@ -124,7 +99,7 @@
 
 ;;store patterns
 
-(define_insn "store_word"
+(define_insn "*store_word"
 	[(set (match_operand:SI 0 "memory_operand" "=m")
 	      (match_operand:SI 1 "register_operand" "r")
 	)]
@@ -134,7 +109,7 @@
 
 ;;Constant loads
 
-(define_insn "constant_load"
+(define_insn "*constant_load"
 	[(set (match_operand:SI 0 "register_operand" "=r")
 	      (match_operand:SI 1 "const_int_operand" "i"))]
 	""
@@ -143,9 +118,9 @@
 ;; but that will be used once shift operation is included in md file.
 )
 
-(define_insn "symbolic_address_load" 
+(define_insn "*symbolic_address_load" 
 	[(set (match_operand:SI 0 "register_operand" "=r")
-	      (match_operand:SI 1 "symbolic_operand" "s"))]
+	      (match_operand:SI 1 "symbolic_operand" "D"))]
 	""
 	"la \\t%0, %s1"
 )
@@ -163,42 +138,24 @@
 	sw \\t%1, %m0"
 )
 
-(define_insn "move_regs"
-      [(set (match_operand:SI 0 "register_operand" "=r")
-	    (match_operand:SI 1 "register_operand" "r")
-       )]
-	""
-	"move \\t%0,%1"
+(define_insn "*move_regs"
+        [(set (match_operand:SI 0 "register_operand" "=r")
+              (match_operand:SI 1 "register_operand" "r")
+        )]
+        ""
+        "move \\t%0,%1"
 )
 
 (define_insn "addsi3"
 	[(set (match_operand:SI 0 "register_operand" "=r,r")
-	      (plus:SI (match_operand:SI 1 "register_operand" "r,r")
-		       (match_operand:SI 2 "nonmemory_operand" "r,K"))
-	)]
-	""
-	"@
-	add \\t%0, %1, %2
-	addi \\t%0, %1, %c2"
-
-)
-
-(define_insn "mulsi3"
-        [(set (match_operand:SI 0 "register_operand" "=r")
-              (mult:SI (match_operand:SI 1 "register_operand" "r")
-                       (match_operand:SI 2 "register_operand" "r"))
+              (plus:SI (match_operand:SI 1 "register_operand" "r,r")
+                       (match_operand:SI 2 "nonmemory_operand" "r,K"))
          )]
         ""
-        "mul \\t%0, %1, %2"
-)
+        "@
+         add \\t%0, %1, %2
+         addi \\t%0, %1, %c2"
 
-(define_insn "umulsi3"
-        [(set (match_operand:SI 0 "register_operand" "=r")
-              (mult:SI (zero_extend:SI (match_operand:SI 1 "register_operand" "r"))
-                       (zero_extend:SI (match_operand:SI 2 "general_operand" "rmi")))
-         )]
-        ""
-        "mulou \\t%0, %1, %2"
 )
 
 (define_expand "prologue"
@@ -214,144 +171,6 @@
 ;; Arithmatic and logical operations
 ;;===================================
 
-(define_insn "abssi2"
-	[(set (match_operand:SI 0 "register_operand" "=r")
-	      (abs:SI (match_operand:SI 1 "register_operand" "r")))]
-	""
-	"abs \\t%0, %1"
-)
-
-(define_insn "andsi3"
-        [(set (match_operand:SI 0 "register_operand" "=r,r")
-              (and:SI (match_operand:SI 1 "register_operand" "r,r")
-                      (match_operand:SI 2 "nonmemory_operand" "r,K"))
-         )]
-        ""
-        "@
-         and \\t%0, %1, %2
-         andi \\t%0, %1, %c2"
-)
-
-(define_insn "divsi3"
-        [(set (match_operand:SI 0 "register_operand" "=r,r")
-              (div:SI (match_operand:SI 1 "register_operand" "r,r")
-                       (match_operand:SI 2 "general_operand" "r,im"))
-         )]
-        ""
-        "@
-	div \\t%1, %2\\n\\tmflo \\t%0
-	div \\t%0, %1, %2"
-)
-
-(define_insn "udivsi3"
-        [(set (match_operand:SI 0 "register_operand" "=r,r")
-              (udiv:SI (match_operand:SI 1 "register_operand" "r,r")
-                       (match_operand:SI 2 "general_operand" "r,im"))
-         )]
-        ""
-        "@
-	divu \\t%1, %2\\n\\tmflo \\t%0
-	divu \\t%0, %1, %2"
-)
-
-(define_insn "modsi3"
-        [(set (match_operand:SI 0 "register_operand" "=r")
-              (mod:SI (match_operand:SI 1 "register_operand" "r")
-                       (match_operand:SI 2 "register_operand" "r"))
-         )]
-        ""
-        "rem \\t%0, %1, %2"
-)
-                                                                                                    
-(define_insn "umodsi3"
-        [(set (match_operand:SI 0 "register_operand" "=r")
-              (umod:SI (match_operand:SI 1 "register_operand" "r")
-                       (match_operand:SI 2 "register_operand" "r"))
-         )]
-        ""
-        "remu \\t%0, %1, %2"
-)
-
-(define_insn "negsi2"
-        [(set (match_operand:SI 0 "register_operand" "=r")
-              (neg:SI (match_operand:SI 1 "register_operand" "r"))
-         )]
-        ""
-        "neg \\t%0, %1"
-)
-
-;;There is no standard pattern for NOR instruction, so currently omitting the pattern.
-
-(define_insn "one_cmplsi2"
-	[(set (match_operand:SI 0 "register_operand" "=r")
-	      (not:SI (match_operand:SI 1 "register_operand" "r")))]
-	""
-	"not \\t%0, %1"
-)
-
-(define_insn "iorsi3"
-        [(set (match_operand:SI 0 "register_operand" "=r,r")
-              (ior:SI (match_operand:SI 1 "register_operand" "r,r")
-                       (match_operand:SI 2 "nonmemory_operand" "r,K"))
-         )]
-        ""
-        "@
-	  or \\t%0, %1, %2
-	  ori \\t%0, %1, %c2"
-)
-
-(define_insn "xorsi3"
-        [(set (match_operand:SI 0 "register_operand" "=r,r")
-              (xor:SI (match_operand:SI 1 "register_operand" "r,r")
-                       (match_operand:SI 2 "nonmemory_operand" "r,K"))
-         )]
-        ""
-        "@
-          xor \\t%0, %1, %2
-          xori \\t%0, %1, %c2"
-)
-
-(define_insn "subsi3"
-        [(set (match_operand:SI 0 "register_operand" "=r")
-              (minus:SI (match_operand:SI 1 "register_operand" "r")
-                       (match_operand:SI 2 "register_operand" "r"))
-         )]
-        ""
-        "sub \\t%0, %1, %2"
-)
-
-(define_insn "ashlsi3"
-        [(set (match_operand:SI 0 "register_operand" "=r,r")
-              (ashift:SI (match_operand:SI 1 "register_operand" "r,r")
-                       (match_operand:SI 2 "nonmemory_operand" "r,J"))
-         )]
-        ""
-       "@
-	 sllv \\t%0, %1, %2
-	 sll \\t%0, %1, %c2"
-)
-
-(define_insn "ashrsi3"
-        [(set (match_operand:SI 0 "register_operand" "=r,r")
-              (ashiftrt:SI (match_operand:SI 1 "register_operand" "r,r")
-                       (match_operand:SI 2 "nonmemory_operand" "r,J"))
-         )]
-        ""
-        "@
-         srav \\t%0, %1, %2
-         sra \\t%0, %1, %c2"
-)
-
-(define_insn "lshrsi3"
-        [(set (match_operand:SI 0 "register_operand" "=r,r")
-              (lshiftrt:SI (match_operand:SI 1 "register_operand" "r,r")
-                       (match_operand:SI 2 "nonmemory_operand" "r,J"))
-         )]
-        ""
-        "@
-         srlv \\t%0, %1, %2
-         srl \\t%0, %1, %c2"
-)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Function calls
@@ -380,10 +199,20 @@
         "
 )
 
+(define_insn "call_value_internal"
+  [(set (match_operand 0 "register_operand" "")
+        (call (mem:SI (match_operand 1 "call_insn_operand" "S"))
+              (match_operand 2 "" "")))
+   (clobber (reg:SI 31))]
+  ""
+  "*
+    return spim_output_jump (operands);
+  "
+)
+
 ;;isha added
 (define_insn "nop"
   [(const_int 0)]
   ""
-  ""
+  "#nop"
 )
-

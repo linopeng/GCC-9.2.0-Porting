@@ -2771,6 +2771,10 @@ funsafe-math-optimizations
 Common Report Var(flag_unsafe_math_optimizations) Optimization SetByCombined
 Allow math optimizations that may violate IEEE or ISO standards.
 
+Wposit
+Common Report Var(Wposit)
+Warn user convert float to posit.
+
 funswitch-loops
 Common Report Var(flag_unswitch_loops) Optimization
 Perform loop unswitching.

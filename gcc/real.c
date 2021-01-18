@@ -2980,10 +2980,15 @@ encode_ieee_single (const struct real_format *fmt, long *buf,
     default:
       gcc_unreachable ();
     }
-
-  //was buf[0] = image;
-  temp_p32 = convertFloatToP32(*(float*)&image);
-  buf[0] = *(long*)&temp_p32 & 0x00000000ffffffff ;
+  if (Wposit){
+      temp_p32 = convertFloatToP32(*(float*)&image);
+      buf[0] = *(long*)&temp_p32 & 0x00000000ffffffff;
+      fprintf(stderr,"This float32 convert to use posit32\n");
+  }else{
+        buf[0] = image;
+  }
+      // temp_p32 = convertFloatToP32(*(float*)&image);
+      // buf[0] = *(long*)&temp_p32 & 0x00000000ffffffff;
 }
 
 static void

@@ -38,6 +38,7 @@
 
 #define SLOW_BYTE_ACCESS 0
 
+#define CASE_VECTOR_MODE SImode
 
 /* ------------------------------------------------------------------------------*
  * 			Registers and their usage conventions 			 *
@@ -140,7 +141,7 @@ CLASS
  * HARD_REGNO_NREGS  (regno, mode)  for all  regno values  in the  class
  * CLASS. */
 #define CLASS_MAX_NREGS(CLASS, MODE) \
-((GET_MODE_SIZE(MODE)+UNITS_PER_WORD-1)/UNITS_PER_WORD)
+((GET_MODE_SIZE(MODE)+UNITS_PER_WORD-1)/UNITS_PER_WORD) // All registers are word-sized.
 
 /* ------------------------------------------------------------------------------*
  * 			Activation Record and Calling Conventions                *
@@ -183,15 +184,15 @@ CLASS
   and  the  Frame  Pointer  is eliminated  by  computing  offsets  after
   register allocation.
 */
-
-#define STACK_GROWS_DOWNWARD 0
+//ishkt changes
+#define STACK_GROWS_DOWNWARD 1 // First sp goes down &second push element to stack then sp point to stack top element.
 
 #define FRAME_GROWS_DOWNWARD 0
 
 #define STACK_POINTER_OFFSET \
 0
 
-#define FIRST_PARM_OFFSET(FUN)\
+#define FIRST_PARM_OFFSET(FNDECL)\
 0
 
 #define STACK_POINTER_REGNUM \
@@ -203,11 +204,10 @@ CLASS
 #define ARG_POINTER_REGNUM \
 HARD_FRAME_POINTER_REGNUM 
 
-/*Anyway this is dummy pointer, and is always eliminated to hard frame pointer.*/
+/*Anyway this is dummy pointer, and is always eliminated to hard frame pointer.
+  Use $at as frame_pointer to allocate dynamic var address and until gcc assign all reg frame_pointer=$at will eliminate by hard_frame_pointer*/
 #define FRAME_POINTER_REGNUM \
 1
-
-
 
 /* This macro was defined in level 0.0. But now that we have hard frame pointer, due
  * to variable sized fields between local variable frame and arguments, frame pointer
@@ -220,12 +220,13 @@ DEPTH=initial_frame_pointer_offset (DEPTH) */
 {{FRAME_POINTER_REGNUM,      STACK_POINTER_REGNUM}, \
  {FRAME_POINTER_REGNUM,      HARD_FRAME_POINTER_REGNUM}, \
  {ARG_POINTER_REGNUM,        STACK_POINTER_REGNUM}, \
+ {ARG_POINTER_REGNUM,        HARD_FRAME_POINTER_REGNUM}, \
  {HARD_FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM} \
 }
 
 /*Recomputes new offsets, after eliminating.*/
-#define INITIAL_ELIMINATION_OFFSET(FROM, TO, VAR) \
-(VAR) = initial_elimination_offset(FROM, TO)
+#define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET) \
+(OFFSET) = initial_elimination_offset((FROM), (TO))
 
 /* Function pops none of its arguments, so it is caller's responsibility 
  * to pop off the parameters. */
@@ -234,30 +235,46 @@ DEPTH=initial_frame_pointer_offset (DEPTH) */
 0
 */
 
+/* Allocate stack space for arguments at the beginning of each function.  */
+/* Caller儲存arg到stack lw,sw */
 #define ACCUMULATE_OUTGOING_ARGS \
-0
+1
+/* Define this if it is the responsibility of the caller to
+   allocate the area reserved for arguments passed in registers.
+   If `ACCUMULATE_OUTGOING_ARGS' is also defined, the only effect
+   of this macro is to determine whether the space is included in
+   `crtl->outgoing_args_size'.  */
+/* 導致callee那邊 lw進來的reg變動 */
+#define OUTGOING_REG_PARM_STACK_SPACE(FNTYPE) 1
+//#define PUSH_ARGS  (!ACCUMULATE_OUTGOING_ARGS)
 
-#define FUNCTION_ARG_REGNO_P(r) /* Irrelevant in this level */ \
-0
+/* Copy form mips.h Check N is or not arg register */
+#define FUNCTION_ARG_REGNO_P(N)					\
+  ((IN_RANGE((N), GP_ARG_FIRST, GP_ARG_LAST) || ((N) % 2 == 0)) && !fixed_regs[N])
 
-/* Type  of data  structure to  record the  information about  arguments
- * passed in  registers. Irrelevant in this  level so a simple  int will
- * do. */
-#define CUMULATIVE_ARGS \
-int
+typedef struct spim_args {
+  /* Always true for varargs functions.  Otherwise true if at least
+     one argument has been passed in an integer register.  */
+  int gp_reg_found;
+  /* The number of arguments seen so far.  */
+  unsigned int arg_number;
+  /* The number of integer registers used so far.  For all ABIs except
+     EABI, this is the number of words that have been added to the
+     argument structure, limited to MAX_ARGS_IN_REGISTERS.  */
+  unsigned int num_gprs;
+  /* The number of words passed on the stack.  */
+  unsigned int stack_words;
+  /* True if the function has a prototype.  */
+  int prototype;
+} CUMULATIVE_ARGS;
 
+/* 用来初始化CUMULATIVE_ARGS类型的变量CUM，其主要目的是FUNCTION_ARG宏定义可以通过访问变量CUM，能够确定当前参数的传递类型，
+   如果使用寄存器传递参数，则FUNCTION_ARG返回传递参数的寄存器RTX，
+   如果使用堆栈传递，则FUNCTION_ARG返回NULL_RTX */
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, FNDECL, NAMED_ARGS)	\
-{\
-CUM = 0;\
-}
+  spim_init_cumulative_args (&CUM, FNTYPE)\
 
-
-#define FUNCTION_VALUE(valtype, func)\
-function_value()
-
-#define LIBCALL_VALUE(MODE) \
-function_value()
-
+/* Check return value store in register $v0 */
 #define FUNCTION_VALUE_REGNO_P(REGN) \
 ((REGN) == 2)
 
@@ -288,6 +305,8 @@ if (legitimate_address1(mode,x))\
 #define GO_IF_LEGITIMATE_ADDRESS(mode,x,label) \
 {\
 	if (legitimate_address2(mode,x))\
+  /*fprintf(stderr,"-----------------------\n");*/\
+  /*fprintf(stderr,"mode : %s \n",GET_MODE_NAME(mode));*/\
 		        goto label;\
 }
 #endif
@@ -364,8 +383,7 @@ function_profiler(file,lab)
  "$gp","$sp","$fp","$ra", \
 }
 
-/* Globalizing directive for a label.  */
-#define GLOBAL_ASM_OP "\t.globl\t"
+
 
 #define TEXT_SECTION_ASM_OP                                               \
 "\t.text"
@@ -404,11 +422,21 @@ do                                            \
 
 #define TRAMPOLINE_SIZE 32
 
-#define CASE_VECTOR_MODE SImode
+/************************************** Another add not in indu spim document **************************************/
+/************************************** Another add not in indu spim document **************************************/
+/************************************** Another add not in indu spim document **************************************/
+/************************************** Another add not in indu spim document **************************************/
 
+#define GP_RETURN (GP_REG_FIRST + 2)
+#define GP_REG_P(REGNO)	\
+  ((unsigned int) ((int) (REGNO) - GP_REG_FIRST) < GP_REG_NUM)
 
+/* Internal macros to classify a register number as to whether it's a
+   general purpose register, a floating point register, a
+   multiply/divide register, or a status register.  */
 
-// Add with %(/{ can be used where define in final.c file
-//#define ASSEMBLER_DIALECT 1
-
-#define TARGET_SOFT_FLOAT
+#define GP_REG_FIRST 0
+#define GP_REG_LAST  31
+#define GP_REG_NUM   (GP_REG_LAST - GP_REG_FIRST + 1)
+#define GP_ARG_FIRST (GP_REG_FIRST + 4)
+#define GP_ARG_LAST  7

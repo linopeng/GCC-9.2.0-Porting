@@ -2,7 +2,7 @@
 
 
 (define_predicate "symbolic_operand"
-  (match_code "const,symbol_ref,label_ref")
+  (match_code "symbol_ref,label_ref")
 {
 	if(GET_CODE(op) == SYMBOL_REF || GET_CODE(op) == LABEL_REF)
         {
@@ -34,3 +34,22 @@
 	}
 	return 0;
 })
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                                Mips                                                             ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define_predicate "move_operand"
+  (match_operand 0 "general_operand")
+
+{
+        return 1;
+})
+
+(define_predicate "const_call_insn_operand"
+  (match_code "const,symbol_ref,label_ref")
+)
+
+(define_predicate "call_insn_operand"
+  (ior (match_operand 0 "const_call_insn_operand")
+       (match_operand 0 "register_operand")))
+

@@ -5279,9 +5279,9 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
   /* Don't allow popping to be deferred, since then
      cse'ing of library calls could delete a call and leave the pop.  */
   NO_DEFER_POP;
+  //fprintf(stderr,"mem_value = %d , outmode = %s \n",mem_value,GET_MODE_NAME(outmode));
   valreg = (mem_value == 0 && outmode != VOIDmode
 	    ? hard_libcall_value (outmode, orgfun) : NULL_RTX);
-
   /* Stack must be properly aligned now.  */
   gcc_assert (multiple_p (stack_pointer_delta,
 			  PREFERRED_STACK_BOUNDARY / BITS_PER_UNIT));
@@ -5386,7 +5386,9 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
 	  if (GET_MODE (valreg) != outmode)
 	    {
 	      int unsignedp = TYPE_UNSIGNED (tfom);
-
+		  fprintf(stderr,"calls.c line 5389 valreg :%s \n",GET_MODE_NAME(GET_MODE(valreg)));
+		  fprintf(stderr,"calls.c line 5390 outmode mode:%s \n",GET_MODE_NAME(outmode));
+		  fprintf(stderr,"Output error at call.c:5391 \n");
 	      gcc_assert (promote_function_mode (tfom, outmode, &unsignedp,
 						 fndecl ? TREE_TYPE (fndecl) : fntype, 1)
 			  == GET_MODE (valreg));
@@ -5396,6 +5398,9 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
 	  if (value != 0)
 	    emit_move_insn (value, valreg);
 	  else
+	    //fprintf(stderr,"calls.c line 5401 outmode mode:%s \n",GET_MODE_NAME(outmode));
+	    //fprintf(stderr,"calls.c line 5402 valreg mode:%s \n",GET_MODE_NAME(GET_MODE(valreg)));
+	    //fprintf(stderr,"Complete compile at call.c:5403 \n");
 	    value = valreg;
 	}
     }
