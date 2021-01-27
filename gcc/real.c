@@ -2980,6 +2980,7 @@ encode_ieee_single (const struct real_format *fmt, long *buf,
     default:
       gcc_unreachable ();
     }
+  // Wposit add by common.opt && c.opt
   if (Wposit){
       temp_p32 = convertFloatToP32(*(float*)&image);
       buf[0] = *(long*)&temp_p32 & 0x00000000ffffffff;
