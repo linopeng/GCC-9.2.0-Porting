@@ -62,6 +62,9 @@ extern Elf_Dyn _DYNAMIC;
   __FreeBSD_version <= 902001  // v9.2
 #define ucontext_t xucontext_t
 #endif
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 
 typedef enum {
   ASAN_RT_VERSION_UNDEFINED = 0,

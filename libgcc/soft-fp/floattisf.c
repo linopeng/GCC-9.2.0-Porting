@@ -27,20 +27,63 @@
    License along with the GNU C Library; if not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "soft-fp.h"
-#include "single.h"
+typedef float SFtype;
+typedef long long TItype;
 
-SFtype
-__floattisf (TItype i)
-{
-  FP_DECL_EX;
-  FP_DECL_S (A);
-  SFtype a;
+#include "internals.h"
+#include "platform.h"
 
-  FP_INIT_ROUNDMODE;
-  FP_FROM_INT_S (A, i, TI_BITS, UTItype);
-  FP_PACK_RAW_S (a, A);
-  FP_HANDLE_EXCEPTIONS;
+posit32_t i64_to_p32(int64_t iA) {
+  int_fast8_t k, log2 = 63;  // length of bit (e.g. 9222809086901354496) in int
+                             // (64 but because we have only 64 bits, so one bit
+                             // off to accomdate that fact)
+  union ui32_p32 uZ;
+  uint_fast64_t uiA;
+  uint_fast64_t mask = 0x8000000000000000, fracA;
+  uint_fast32_t expA;
+  bool sign;
 
-  return a;
+  if (iA <
+      -9222809086901354495) {  //-9222809086901354496 to -9223372036854775808
+                               // will be P32 value -9223372036854775808
+    uZ.ui = 0x80005000;
+    return uZ.p;
+  }
+  sign = iA >> 63;
+  if (sign) iA = -iA;
+
+  if (iA > 9222809086901354495)  // 9222809086901354495 bcos 9222809086901354496
+                                 // to 9223372036854775807 will be P32 value
+                                 // 9223372036854775808
+    uiA = 0x7FFFB000;            // P32: 9223372036854775808
+  else if (iA < 0x2)
+    uiA = (iA << 30);
+  else {
+    fracA = iA;
+    while (!(fracA & mask)) {
+      log2--;
+      fracA <<= 1;
+    }
+
+    k = (log2 >> 2);
+
+    expA = (log2 & 0x3) << (27 - k);
+    fracA = (fracA ^ mask);
+
+    uiA = (0x7FFFFFFF ^ (0x3FFFFFFF >> k)) | expA | fracA >> (k + 36);
+
+    mask = 0x800000000 << k;  // bitNPlusOne
+
+    if (mask & fracA) {
+      if (((mask - 1) & fracA) | ((mask << 1) & fracA)) uiA++;
+    }
+  }
+  (sign) ? (uZ.ui = -uiA) : (uZ.ui = uiA);
+  return uZ.p;
+}
+
+SFtype __floattisf(TItype i) {
+  posit32_t a;
+  a = i64_to_p32(i);
+  return *(SFtype *)&a;
 }

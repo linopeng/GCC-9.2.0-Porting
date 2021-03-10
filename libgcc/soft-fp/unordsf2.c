@@ -26,23 +26,21 @@
    You should have received a copy of the GNU Lesser General Public
    License along with the GNU C Library; if not, see
    <http://www.gnu.org/licenses/>.  */
+// These functions return a nonzero value
+// if either argument is NaN, otherwise 0.
+#include "internals.h"
+#include "platform.h"
 
-#include "soft-fp.h"
-#include "single.h"
+#define CMPtype int
+typedef float SFtype;
 
-CMPtype
-__unordsf2 (SFtype a, SFtype b)
-{
-  FP_DECL_EX;
-  FP_DECL_S (A);
-  FP_DECL_S (B);
-  CMPtype r;
-
-  FP_INIT_EXCEPTIONS;
-  FP_UNPACK_RAW_S (A, a);
-  FP_UNPACK_RAW_S (B, b);
-  FP_CMP_UNORD_S (r, A, B, 1);
-  FP_HANDLE_EXCEPTIONS;
-
-  return r;
+CMPtype __unordsf2(SFtype a, SFtype b) {
+  unsigned int uA, uB;
+  uA = (*(unsigned int *)&a);
+  uB = (*(unsigned int *)&b);
+  // 80000000 = -0 =NAR
+  if (uA == 0x80000000 && uB == 0x80000000)
+    return 0;
+  else
+    return 1;
 }

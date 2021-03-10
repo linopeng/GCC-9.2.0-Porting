@@ -27,8 +27,7 @@
 #include "tree.h"
 #include "realmpfr.h"
 #include "dfp.h"
-#include "c_convertDecToPosit16.c"
-#include "c_convertDecToPosit32.c"
+#include <math.h>
 /* The floating point model used internally is not exactly IEEE 754
    compliant, and close to the description in the ISO C99 standard,
    section 5.2.4.2.2 Characteristics of floating types.
@@ -2915,6 +2914,21 @@ real_hash (const REAL_VALUE_TYPE *r)
   return h;
 }
 
+void printBits(size_t const size, void const * const ptr)
+{
+    unsigned char *b = (unsigned char*) ptr;
+    unsigned char byte;
+    int i, j;
+    
+    for (i = size-1; i >= 0; i--) {
+        for (j = 7; j >= 0; j--) {
+            byte = (b[i] >> j) & 1;
+            printf("%u", byte);
+        }
+    }
+    puts("");
+}
+
 /* IEEE single-precision format.  */
 
 static void encode_ieee_single (const struct real_format *fmt,
@@ -2924,78 +2938,229 @@ static void decode_ieee_single (const struct real_format *,
 
 static void
 encode_ieee_single (const struct real_format *fmt, long *buf,
-		    const REAL_VALUE_TYPE *r)
+            const REAL_VALUE_TYPE *r)
 {
-  unsigned long image, sig, exp;
-  unsigned long sign = r->sign;
-  posit32_t temp_p32;
-  bool denormal = (r->sig[SIGSZ-1] & SIG_MSB) == 0;
+  if(Wposit){
+    unsigned long image, sig, reg, regime ,frac=0;
+    unsigned long sign = r->sign;
+    bool regS;
+    bool bitNPlusOne=0, bitsMore=0;
+    int fracLength,exp;
+    bool denormal = (r->sig[SIGSZ-1] & SIG_MSB) == 0;
+    image = sign << 31;
+    //printBits(sizeof(r->sig[SIGSZ-1]), &r->sig[SIGSZ-1]);
+    sig = (r->sig[SIGSZ-1] >> (HOST_BITS_PER_LONG - 29)) & 0xfffffff;
+    //printBits(sizeof(sig), &sig);
+    switch (r->cl)  
+      {
+      case rvc_zero:
+        image = 0;
+        break;
 
-  image = sign << 31;
-  sig = (r->sig[SIGSZ-1] >> (HOST_BITS_PER_LONG - 24)) & 0x7fffff;
+      case rvc_inf:
+        image = 0x80000000;
+        break;
 
-  switch (r->cl)
-    {
-    case rvc_zero:
-      break;
+      case rvc_nan:
+        image = 0x80000000;
+        break;
 
-    case rvc_inf:
-      if (fmt->has_inf)
-	image |= 255 << 23;
-      else
-	image |= 0x7fffffff;
-      break;
+      case rvc_normal:
+        /* Recall that IEEE numbers are interpreted as 1.F x 2**exp,
+      whereas the intermediate representation is 0.F x 2**exp.
+      Which means we're off by one.  */
+        //in out Posit version, it also have hidden 1 in significand part(1.F)
+        if (denormal){ //denormal IEEE single must be smaller than smallest posit_32 with es=2 value
+          if (sign==0)
+            image = 0x1;       // minpos
+          else
+            image = 0xFFFFFFFF;//-minpos
+          break;
+        }
+        else 
+          exp = REAL_EXP (r) - 1;      
+        if (exp>=120 && sign==0){
+          image = 0x7FFFFFFF; // maxpos
+        }
+        else if (exp>=120 && sign==1){
+          image = 0x80000001; //-maxpos
+        }
+        else if (exp<=-120 && sign==0){
+          image = 0x1;        // minpos
+        }
+        else if (exp<=-120 && sign==1){
+          image = 0xFFFFFFFF; //-minpos
+        }
+        else if (sign==0 && exp==0 && sig==0){
+          fprintf(stderr,"posit = 1\n");
+          image = 0x40000000; // 1
+        }
+        else if (sign==1 && exp==0 && sig==0){
+          image = 0xC0000000; //-1
+        }
+        else if (exp>0){
+          regS = 1;
+          reg = 1; //because k = m-1; so need to add back 1
+          fprintf(stderr,"posit > 1\n");
+          //regime
+          while (exp>=4){
+            exp-=4;  // f32/=16;
+            reg++;
+          }
 
-    case rvc_nan:
-      if (fmt->has_nans)
-	{
-	  if (r->canonical)
-	    sig = (fmt->canonical_nan_lsbs_set ? (1 << 22) - 1 : 0);
-	  if (r->signalling == fmt->qnan_msb_set)
-	    sig &= ~(1 << 22);
-	  else
-	    sig |= 1 << 22;
-	  if (sig == 0)
-	    sig = 1 << 21;
+          fracLength = 28-reg;
+          if (fracLength<0){
+            //in both cases, reg=29 and 30, e is n+1 bit and frac are sticky bits
+            if(reg==29){
+              bitNPlusOne = exp&0x1;
+              exp>>=1; //taken care of by the pack algo
+            }
+            else{//reg=30
+              bitNPlusOne = exp>>1;
+              bitsMore = exp&0x1;
+              exp=0;
+            }
+            if (sig!=0){//because of hidden bit
+              bitsMore =1;
+              frac=0;
+            }
+          }
+          else{
+            frac = sig >> (28-fracLength);
+            bitNPlusOne = (r->sig[SIGSZ-1] >> (64-2-fracLength)) & 1;
+            if((r->sig[SIGSZ-1] & (((unsigned long)1<<(63-fracLength))-1)) > 0) 
+              bitsMore=1;
+            else
+              bitsMore=0;
+          }
 
-	  image |= 255 << 23;
-	  image |= sig;
-	}
-      else
-	image |= 0x7fffffff;
-      break;
+          regime = ( ((unsigned long)1<<reg)-1 ) <<1;
+          if (reg<=28) 
+            exp <<= (28-reg);
+          image = ((regime) << (30-reg)) + (exp) + (frac);
+          //rounding off fraction bits
+          image += (bitNPlusOne & (image&1)) | ( bitNPlusOne & bitsMore);
+          if(sign==1) image = (-image)&0xffffffff;
+        
+        }
+        else if (exp<0){
+          regS = 0;
+          reg = 0;
 
-    case rvc_normal:
-      /* Recall that IEEE numbers are interpreted as 1.F x 2**exp,
-	 whereas the intermediate representation is 0.F x 2**exp.
-	 Which means we're off by one.  */
-      if (denormal)
-	exp = 0;
-      else
-      exp = REAL_EXP (r) + 127 - 1;
-      image |= exp << 23;
-      image |= sig;
-      break;
+          //regime
+          while (exp<0){
+            exp += 4;
+            reg++;
+          }
 
-    default:
-      gcc_unreachable ();
-    }
-  // Wposit add by common.opt && c.opt
-  if (Wposit){
-      temp_p32 = convertFloatToP32(*(float*)&image);
-      buf[0] = *(long*)&temp_p32 & 0x00000000ffffffff;
-      fprintf(stderr,"This float32 convert to use posit32\n");
+          //only possible combination for reg=15 to reach here is 7FFF (maxpos) and FFFF (-minpos)
+          //but since it should be caught on top, so no need to handle
+          fracLength = 28-reg;
+          if (fracLength<0){
+            //in both cases, reg=29 and 30, e is n+1 bit and frac are sticky bits
+            if(reg==29){
+              bitNPlusOne = exp&0x1;
+              exp>>=1; //taken care of by the pack algo
+            }
+            else{//reg=30
+              bitNPlusOne=exp>>1;
+              bitsMore=exp&0x1;
+              exp=0;
+            }
+            if (sig!=0){//because of hidden bit
+              bitsMore =1;
+              frac=0;
+            }
+          }
+          else{
+            frac = sig >> (28-fracLength);
+            bitNPlusOne = (r->sig[SIGSZ-1] >> (64-2-fracLength)) & 1;
+            if((r->sig[SIGSZ-1] & (((unsigned long)1<<(63-fracLength))-1)) > 0) 
+              bitsMore=1;
+            else
+              bitsMore=0;
+          }
+
+          regime = 1;
+          if (reg<=28)  
+            exp<<= (28-reg);
+          image = (regime << (30-reg)) + (exp) + (frac);
+          image += (bitNPlusOne & (image&1)) | ( bitNPlusOne & bitsMore);
+          if(sign==1) image = (-image)&0xffffffff;
+        }
+        break;
+
+      default:
+        gcc_unreachable ();
+      }
+    buf[0] = image;
   }else{
+        unsigned long image, sig, exp;
+        unsigned long sign = r->sign;
+        bool denormal = (r->sig[SIGSZ-1] & SIG_MSB) == 0;
+
+        image = sign << 31;
+        sig = (r->sig[SIGSZ-1] >> (HOST_BITS_PER_LONG - 24)) & 0x7fffff; //и·лсн▒23 bits
+
+        switch (r->cl)
+          {
+          case rvc_zero:
+            break;
+
+          case rvc_inf:
+            if (fmt->has_inf)
+        image |= 255 << 23;
+            else
+        image |= 0x7fffffff;
+            break;
+
+          case rvc_nan:
+            if (fmt->has_nans)
+        {
+          if (r->canonical)
+            sig = (fmt->canonical_nan_lsbs_set ? (1 << 22) - 1 : 0);
+          if (r->signalling == fmt->qnan_msb_set)
+            sig &= ~(1 << 22);
+          else
+            sig |= 1 << 22;
+          if (sig == 0)
+            sig = 1 << 21;
+
+          image |= 255 << 23;
+          image |= sig;
+        }
+            else
+        image |= 0x7fffffff;
+            break;
+
+          case rvc_normal:
+            /* Recall that IEEE numbers are interpreted as 1.F x 2**exp,
+        whereas the intermediate representation is 0.F x 2**exp.
+        Which means we're off by one.  */
+            if (denormal)
+        exp = 0;
+            else
+            exp = REAL_EXP (r) + 127 - 1;
+            image |= exp << 23;
+            image |= sig;
+            break;
+
+          default:
+            gcc_unreachable ();
+          }
+
         buf[0] = image;
-  }
-      // temp_p32 = convertFloatToP32(*(float*)&image);
-      // buf[0] = *(long*)&temp_p32 & 0x00000000ffffffff;
+      }
 }
+
+
+
 
 static void
 decode_ieee_single (const struct real_format *fmt, REAL_VALUE_TYPE *r,
 		    const long *buf)
 {
+  fprintf(stderr,"tttttttttttttttttttttttttt\n");
   unsigned long image = buf[0] & 0xffffffff;
   bool sign = (image >> 31) & 1;
   int exp = (image >> 23) & 0xff;
@@ -4702,7 +4867,6 @@ encode_ieee_half (const struct real_format *fmt, long *buf,
 {
   unsigned long image, sig, exp;
   unsigned long sign = r->sign;
-  posit16_t temp_p16;
   bool denormal = (r->sig[SIGSZ-1] & SIG_MSB) == 0;
 
   image = sign << 15;
@@ -4754,9 +4918,7 @@ encode_ieee_half (const struct real_format *fmt, long *buf,
     default:
       gcc_unreachable ();
     }
-  //was buf[0] = image;
-  temp_p16 = convertFloatToP16(*(float*)&image);
-  buf[0] = *(long*)&temp_p16 & 0x000000000000ffff ;
+  buf[0] = image;
 }
 
 /* Decode half-precision floats.  This routine is used both for the IEEE

@@ -3,7 +3,7 @@
    Copyright (C) 1997-2018 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Richard Henderson (rth@cygnus.com) and
-		  Jakub Jelinek (jj@ultra.linux.cz).
+                  Jakub Jelinek (jj@ultra.linux.cz).
 
    The GNU C Library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -27,25 +27,34 @@
    You should have received a copy of the GNU Lesser General Public
    License along with the GNU C Library; if not, see
    <http://www.gnu.org/licenses/>.  */
+// checked
+#include "internals.h"
+#include "platform.h"
 
-#include "soft-fp.h"
-#include "single.h"
+#define CMPtype int
+typedef float SFtype;
+// These functions return a value less than or
+// equal to zero if neither argument is NaN,
+// and a is less than or equal to b.
+int p32_les(posit32_t a, posit32_t b) {
+  union ui32_p32 uA, uB;
+  int32_t uiA, uiB;
 
-CMPtype
-__lesf2 (SFtype a, SFtype b)
-{
-  FP_DECL_EX;
-  FP_DECL_S (A);
-  FP_DECL_S (B);
+  uA.p = a;
+  uiA = (int32_t)uA.ui;
+  uB.p = b;
+  uiB = (int32_t)uB.ui;
+
+  if (uiA <= uiB)
+    return -1;
+  else
+    return 1;
+}
+
+CMPtype __lesf2(SFtype a, SFtype b) {
   CMPtype r;
-
-  FP_INIT_EXCEPTIONS;
-  FP_UNPACK_RAW_S (A, a);
-  FP_UNPACK_RAW_S (B, b);
-  FP_CMP_S (r, A, B, 2, 2);
-  FP_HANDLE_EXCEPTIONS;
-
+  r = p32_les(*(posit32_t*)&a, *(posit32_t*)&b);
   return r;
 }
 
-strong_alias (__lesf2, __ltsf2);
+// strong_alias(__lesf2, __ltsf2);

@@ -1960,7 +1960,7 @@ final_1 (rtx_insn *first, FILE *file, int seen, int optimize_p)
   int bb_seqn = 0;
 
   last_ignored_compare = 0;
-  fprintf(stderr,"\n ----------------------------- final.c line 1963 -----------------------------\n");
+  //fprintf(stderr,"\n ----------------------------- final.c line 1963 -----------------------------\n");
   if (HAVE_cc0)
     for (insn = first; insn; insn = NEXT_INSN (insn))
       {

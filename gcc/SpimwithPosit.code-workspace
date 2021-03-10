@@ -1,0 +1,23 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../../spim-test"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.md": "lisp",
+			"*.def": "c",
+			"string_view": "c",
+			"rope": "c",
+			"regex": "c",
+			"*.x": "cpp",
+			"*.inc": "c",
+			"cstring": "c",
+			"crash38.C": "cpp"
+		}
+	}
+}

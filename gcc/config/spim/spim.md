@@ -367,16 +367,16 @@
         "
 )
 
-;; (define_insn "call_value_internal"
-;;   [(set (match_operand 0 "register_operand" "")
-;;         (call (mem:SI (match_operand 1 "call_insn_operand" "S"))
-;;               (match_operand 2 "" "")))
-;;    (clobber (reg:SI 31))]
-;;   ""
-;;   "*
-;;     return spim_output_jump (operands);
-;;   "
-;; )
+(define_insn "call_value_internal"
+  [(set (match_operand 0 "register_operand" "")
+        (call (mem:SI (match_operand 1 "call_insn_operand" "S"))
+              (match_operand 2 "" "")))
+   (clobber (reg:SI 31))]
+  ""
+  "*
+    return spim_output_jump (operands);
+  "
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;Conditional code and branch instructions

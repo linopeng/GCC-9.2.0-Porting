@@ -27,20 +27,54 @@
    License along with the GNU C Library; if not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "soft-fp.h"
-#include "single.h"
+typedef float SFtype;
+typedef unsigned long long UTItype;
 
-SFtype
-__floatuntisf (UTItype i)
-{
-  FP_DECL_EX;
-  FP_DECL_S (A);
-  SFtype a;
+#include "internals.h"
+#include "platform.h"
 
-  FP_INIT_ROUNDMODE;
-  FP_FROM_INT_S (A, i, TI_BITS, UTItype);
-  FP_PACK_RAW_S (a, A);
-  FP_HANDLE_EXCEPTIONS;
+posit32_t ui64_to_p32(uint64_t a) {
+  int_fast8_t k, log2 = 63;  // length of bit (e.g. 18445618173802708992) in int
+                             // (64 but because we have only 64 bits, so one bit
+                             // off to accommodate that fact)
+  union ui32_p32 uZ;
+  uint_fast64_t uiA;
+  uint_fast64_t mask = 0x8000000000000000, fracA;
+  uint_fast32_t expA;
 
-  return a;
+  if (a > 18445618173802708991ULL)  // 0xFFFBFFFFFFFFFFFF  is the midpoint
+    uiA = 0x7FFFC000;               // P32: 18446744073709552000
+  else if (a < 0x2)
+    uiA = (a << 30);
+  else {
+    fracA = a;
+    while (!(fracA & mask)) {
+      log2--;
+      fracA <<= 1;
+    }
+
+    k = (log2 >> 2);
+
+    expA = (log2 & 0x3) << (27 - k);
+    fracA = (fracA ^ mask);
+
+    uiA = (0x7FFFFFFF ^ (0x3FFFFFFF >> k)) | expA | fracA >> (k + 36);
+
+    mask = 0x800000000 << k;  // bitNPlusOne
+
+    if (mask & fracA) {
+      if (((mask - 1) & fracA) | ((mask << 1) & fracA)) uiA++;
+    }
+  }
+  uZ.ui = uiA;
+  return uZ.p;
+}
+
+#include "internals.h"
+#include "platform.h"
+
+SFtype __floatuntisf(UTItype i) {
+  posit32_t a;
+  a = ui64_to_p32(i);
+  return *(SFtype *)&a;
 }

@@ -3,7 +3,7 @@
    Copyright (C) 1997-2018 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Richard Henderson (rth@cygnus.com) and
-		  Jakub Jelinek (jj@ultra.linux.cz).
+                  Jakub Jelinek (jj@ultra.linux.cz).
 
    The GNU C Library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -28,24 +28,37 @@
    License along with the GNU C Library; if not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "soft-fp.h"
-#include "single.h"
+// checked
+#include "internals.h"
+#include "platform.h"
 
-CMPtype
-__gesf2 (SFtype a, SFtype b)
-{
-  FP_DECL_EX;
-  FP_DECL_S (A);
-  FP_DECL_S (B);
-  CMPtype r;
+#define CMPtype int
+typedef float SFtype;
 
-  FP_INIT_EXCEPTIONS;
-  FP_UNPACK_RAW_S (A, a);
-  FP_UNPACK_RAW_S (B, b);
-  FP_CMP_S (r, A, B, -2, 2);
-  FP_HANDLE_EXCEPTIONS;
+// These functions return a value greater than
+// or equal to zero if neither argument is NaN,
+// and a is greater than or equal to b.
+int p32_gef(posit32_t a, posit32_t b) {
+  union ui32_p32 uA, uB;
+  int32_t uiA, uiB;
+
+  uA.p = a;
+  uiA = (int32_t)uA.ui;
+  uB.p = b;
+  uiB = (int32_t)uB.ui;
+
+  if (uiA >= uiB)
+    return 0;
+  else
+    return -1;
+}
+
+CMPtype __gesf2(SFtype a, SFtype b) {
+  int r;
+
+  r = p32_gef(*(posit32_t*)&a, *(posit32_t*)&b);
 
   return r;
 }
 
-strong_alias (__gesf2, __gtsf2);
+// strong_alias(__gesf2, __gtsf2);

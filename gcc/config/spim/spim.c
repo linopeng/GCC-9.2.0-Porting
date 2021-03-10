@@ -421,19 +421,11 @@ void print_operand_address(FILE *STREAM, rtx X)
 					((GET_CODE(op2) == REG)
 						 ? reg_names[REGNO(op2)]
 						 : reg_names[REGNO(XEXP(op2, 0))]));
-			fprintf(stderr, "%d(%s)\n", INTVAL(op1),
-					((GET_CODE(op2) == REG)
-						 ? reg_names[REGNO(op2)]
-						 : reg_names[REGNO(XEXP(op2, 0))]));
 		}
 		else if (GET_CODE(op2) == CONST_INT && (GET_CODE(op1) == REG || GET_CODE(op1) == SUBREG))
 		/*base displacement*/
 		{
 			fprintf(STREAM, "%d(%s)", INTVAL(op2),
-					((GET_CODE(op1) == REG)
-						 ? reg_names[REGNO(op1)]
-						 : reg_names[REGNO(XEXP(op1, 0))]));
-			fprintf(stderr, "%d(%s)\n", INTVAL(op2),
 					((GET_CODE(op1) == REG)
 						 ? reg_names[REGNO(op1)]
 						 : reg_names[REGNO(XEXP(op1, 0))]));
