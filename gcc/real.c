@@ -57,6 +57,20 @@
    significand is 113 bits; we store at least 160.  The smallest
    denormal number fits in 17 exponent bits; we store 26.  */
 
+void printBits(size_t const size, void const * const ptr)
+{
+    unsigned char *b = (unsigned char*) ptr;
+    unsigned char byte;
+    int i, j;
+    
+    for (i = size-1; i >= 0; i--) {
+        for (j = 7; j >= 0; j--) {
+            byte = (b[i] >> j) & 1;
+            printf("%u", byte);
+        }
+    }
+    puts("");
+}
 
 /* Used to classify two numbers simultaneously.  */
 #define CLASS2(A, B)  ((A) << 2 | (B))
@@ -158,6 +172,7 @@ static bool
 sticky_rshift_significand (REAL_VALUE_TYPE *r, const REAL_VALUE_TYPE *a,
 			   unsigned int n)
 {
+  printf("This is test1\n");
   unsigned long sticky = 0;
   unsigned int i, ofs = 0;
 
@@ -197,6 +212,7 @@ static void
 rshift_significand (REAL_VALUE_TYPE *r, const REAL_VALUE_TYPE *a,
 		    unsigned int n)
 {
+  printf("This is test2\n");
   unsigned int i, ofs = n / HOST_BITS_PER_LONG;
 
   n &= HOST_BITS_PER_LONG - 1;
@@ -226,6 +242,7 @@ static void
 lshift_significand (REAL_VALUE_TYPE *r, const REAL_VALUE_TYPE *a,
 		    unsigned int n)
 {
+  //printf("This is test3\n");
   unsigned int i, ofs = n / HOST_BITS_PER_LONG;
 
   n &= HOST_BITS_PER_LONG - 1;
@@ -251,6 +268,7 @@ lshift_significand (REAL_VALUE_TYPE *r, const REAL_VALUE_TYPE *a,
 static inline void
 lshift_significand_1 (REAL_VALUE_TYPE *r, const REAL_VALUE_TYPE *a)
 {
+  printf("This is test4\n");
   unsigned int i;
 
   for (i = SIGSZ - 1; i > 0; --i)
@@ -265,6 +283,7 @@ static inline bool
 add_significands (REAL_VALUE_TYPE *r, const REAL_VALUE_TYPE *a,
 		  const REAL_VALUE_TYPE *b)
 {
+  printf("This is test5\n");
   bool carry = false;
   int i;
 
@@ -295,8 +314,8 @@ static inline bool
 sub_significands (REAL_VALUE_TYPE *r, const REAL_VALUE_TYPE *a,
 		  const REAL_VALUE_TYPE *b, int carry)
 {
+  printf("This is test6\n");
   int i;
-
   for (i = 0; i < SIGSZ; ++i)
     {
       unsigned long ai = a->sig[i];
@@ -385,8 +404,15 @@ cmp_significand_0 (const REAL_VALUE_TYPE *a)
 static inline void
 set_significand_bit (REAL_VALUE_TYPE *r, unsigned int n)
 {
+  printf("This is test7\n");
+  printBits(sizeof(r->sig[SIGSZ-1]), &r->sig[SIGSZ-1]);
+  if(n == 168){
+    return;
+  }
   r->sig[n / HOST_BITS_PER_LONG]
     |= (unsigned long)1 << (n % HOST_BITS_PER_LONG);
+  printBits(sizeof(r->sig[SIGSZ-1]), &r->sig[SIGSZ-1]);
+  printf("-----------------------------------------------------------------------------------------\n");
 }
 
 /* Clear bit N of the significand of R.  */
@@ -394,6 +420,7 @@ set_significand_bit (REAL_VALUE_TYPE *r, unsigned int n)
 static inline void
 clear_significand_bit (REAL_VALUE_TYPE *r, unsigned int n)
 {
+  printf("This is test8\n");
   r->sig[n / HOST_BITS_PER_LONG]
     &= ~((unsigned long)1 << (n % HOST_BITS_PER_LONG));
 }
@@ -415,12 +442,22 @@ test_significand_bit (REAL_VALUE_TYPE *r, unsigned int n)
 static void
 clear_significand_below (REAL_VALUE_TYPE *r, unsigned int n)
 {
+  printf("clear_significand_below-----------------------------------------------------------------\n");
+  printBits(sizeof(r->sig[SIGSZ-1]), &r->sig[SIGSZ-1]);
   int i, w = n / HOST_BITS_PER_LONG;
+  printf("n = %d, w = %d\n", n , w);
 
   for (i = 0; i < w; ++i)
     r->sig[i] = 0;
 
-  r->sig[w] &= ~(((unsigned long)1 << (n % HOST_BITS_PER_LONG)) - 1);
+  if(n == 168){
+    return;
+  }else{
+    r->sig[w] = r->sig[w]&~(((unsigned long)1 << (n % HOST_BITS_PER_LONG)) - 1);
+  }
+  //r->sig[w] = r->sig[w]&~(((unsigned long)1 << (n % HOST_BITS_PER_LONG)) - 1);
+  printBits(sizeof(r->sig[SIGSZ-1]), &r->sig[SIGSZ-1]);
+  printf("-----------------------------------------------------------------------------------------\n");
 }
 
 /* Divide the significands of A and B, placing the result in R.  Return
@@ -430,6 +467,7 @@ static inline bool
 div_significands (REAL_VALUE_TYPE *r, const REAL_VALUE_TYPE *a,
 		  const REAL_VALUE_TYPE *b)
 {
+  printf("This is test10-----------------------------------------------------------------\n");
   REAL_VALUE_TYPE u;
   int i, bit = SIGNIFICAND_BITS - 1;
   unsigned long msb, inexact;
@@ -466,6 +504,8 @@ div_significands (REAL_VALUE_TYPE *r, const REAL_VALUE_TYPE *a,
 static void
 normalize (REAL_VALUE_TYPE *r)
 {
+  //printf("This is normalize\n");
+  //printBits(sizeof(r->sig[SIGSZ-1]), &r->sig[SIGSZ-1]);
   int shift = 0, exp;
   int i, j;
 
@@ -1002,8 +1042,11 @@ do_fix_trunc (REAL_VALUE_TYPE *r, const REAL_VALUE_TYPE *a)
 	}
       if (REAL_EXP (r) <= 0)
 	get_zero (r, r->sign);
-      else if (REAL_EXP (r) < SIGNIFICAND_BITS)
-	clear_significand_below (r, SIGNIFICAND_BITS - REAL_EXP (r));
+      else if (REAL_EXP (r) < SIGNIFICAND_BITS){
+        printf("Real = %d, significand = %d", REAL_EXP (r), SIGNIFICAND_BITS);
+        clear_significand_below (r, SIGNIFICAND_BITS - REAL_EXP (r));
+      }
+	
       break;
 
     default:
@@ -2913,21 +2956,6 @@ real_hash (const REAL_VALUE_TYPE *r)
 
   return h;
 }
-
-void printBits(size_t const size, void const * const ptr)
-{
-    unsigned char *b = (unsigned char*) ptr;
-    unsigned char byte;
-    int i, j;
-    
-    for (i = size-1; i >= 0; i--) {
-        for (j = 7; j >= 0; j--) {
-            byte = (b[i] >> j) & 1;
-            printf("%u", byte);
-        }
-    }
-    puts("");
-}
 
 /* IEEE single-precision format.  */
 
@@ -2948,7 +2976,10 @@ encode_ieee_single (const struct real_format *fmt, long *buf,
     int fracLength,exp;
     bool denormal = (r->sig[SIGSZ-1] & SIG_MSB) == 0;
     image = sign << 31;
-    //printBits(sizeof(r->sig[SIGSZ-1]), &r->sig[SIGSZ-1]);
+    // printf("sig size = %d\n", SIGSZ);
+    // printf("-------------\n");
+    // printBits(sizeof(r->sig[SIGSZ-1]), &r->sig[SIGSZ-1]);
+    // printf("-------------\n");
     sig = (r->sig[SIGSZ-1] >> (HOST_BITS_PER_LONG - 29)) & 0xfffffff;
     //printBits(sizeof(sig), &sig);
     switch (r->cl)  
@@ -2998,7 +3029,7 @@ encode_ieee_single (const struct real_format *fmt, long *buf,
         else if (sign==1 && exp==0 && sig==0){
           image = 0xC0000000; //-1
         }
-        else if (exp>0){
+        else if (exp>=0){
           regS = 1;
           reg = 1; //because k = m-1; so need to add back 1
           fprintf(stderr,"posit > 1\n");
@@ -3041,12 +3072,12 @@ encode_ieee_single (const struct real_format *fmt, long *buf,
           //rounding off fraction bits
           image += (bitNPlusOne & (image&1)) | ( bitNPlusOne & bitsMore);
           if(sign==1) image = (-image)&0xffffffff;
-        
+        printBits(sizeof(image),&image);
         }
         else if (exp<0){
           regS = 0;
           reg = 0;
-
+          fprintf(stderr,"posit < 1\n");
           //regime
           while (exp<0){
             exp += 4;
@@ -3075,17 +3106,20 @@ encode_ieee_single (const struct real_format *fmt, long *buf,
           else{
             frac = sig >> (28-fracLength);
             bitNPlusOne = (r->sig[SIGSZ-1] >> (64-2-fracLength)) & 1;
+            //printf("bitNplusOne = %d\n", bitNPlusOne);
             if((r->sig[SIGSZ-1] & (((unsigned long)1<<(63-fracLength))-1)) > 0) 
               bitsMore=1;
             else
               bitsMore=0;
           }
-
+          //printf("bitMore = %d\n", bitsMore);
           regime = 1;
           if (reg<=28)  
             exp<<= (28-reg);
           image = (regime << (30-reg)) + (exp) + (frac);
+          printBits(sizeof(image),&image);
           image += (bitNPlusOne & (image&1)) | ( bitNPlusOne & bitsMore);
+          printBits(sizeof(image),&image);
           if(sign==1) image = (-image)&0xffffffff;
         }
         break;
@@ -3093,8 +3127,10 @@ encode_ieee_single (const struct real_format *fmt, long *buf,
       default:
         gcc_unreachable ();
       }
+    //printBits(sizeof(image),&image);
     buf[0] = image;
   }else{
+        printBits(sizeof(r->sig[SIGSZ-1]), &r->sig[SIGSZ-1]);
         unsigned long image, sig, exp;
         unsigned long sign = r->sign;
         bool denormal = (r->sig[SIGSZ-1] & SIG_MSB) == 0;
@@ -3329,9 +3365,16 @@ encode_ieee_double (const struct real_format *fmt, long *buf,
 
   if (HOST_BITS_PER_LONG == 64)
     {
+      //printf("sig size = %d\n", SIGSZ);
       sig_hi = r->sig[SIGSZ-1];
-      sig_lo = (sig_hi >> (64 - 53)) & 0xffffffff;
-      sig_hi = (sig_hi >> (64 - 53 + 1) >> 31) & 0xfffff;
+      //printf("sig = \n");
+      //printBits(sizeof(sig_hi), &sig_hi);
+      sig_lo = (sig_hi >> (64 - 53)) & 0xffffffff; // 32 bits
+      sig_hi = (sig_hi >> (64 - 53 + 1) >> 31) & 0xfffff; // 20 bits
+      //printf("sig_lo = \n");
+      // printBits(sizeof(sig_lo), &sig_lo);
+      // printf("sig_hi = \n");
+      // printBits(sizeof(sig_hi), &sig_hi);
     }
   else
     {
@@ -3411,6 +3454,7 @@ encode_ieee_double (const struct real_format *fmt, long *buf,
     buf[0] = image_hi, buf[1] = image_lo;
   else
     buf[0] = image_lo, buf[1] = image_hi;
+    //printBits(sizeof(buf[0]), &buf[0]);
 }
 
 static void
