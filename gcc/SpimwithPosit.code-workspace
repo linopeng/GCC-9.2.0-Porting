@@ -14,6 +14,12 @@
 		},
 		{
 			"path": "../../../x86_64-linux-test"
+		},
+		{
+			"path": "../../../gmp-6.2.1"
+		},
+		{
+			"path": "../../../gmp-test"
 		}
 	],
 	"settings": {
@@ -69,7 +75,10 @@
 			"ratio": "cpp",
 			"initializer_list": "cpp",
 			"new": "cpp",
-			"typeinfo": "cpp"
+			"typeinfo": "cpp",
+			"cmath": "c",
+			"complex": "c",
+			"bit": "c"
 		}
 	}
 }
