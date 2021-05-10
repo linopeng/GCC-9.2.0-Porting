@@ -28,27 +28,59 @@
    License along with the GNU C Library; if not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "soft-fp.h"
-#include "single.h"
-#include "quad.h"
+#include "internals.h"
+#include "platform.h"
 
-SFtype
-__trunctfsf2 (TFtype a)
+double convertP32ToDouble(posit32_t pA) {
+  union ui32_p32 uA;
+  union ui64_double uZ;
+  uint_fast32_t uiA, tmp = 0;
+  uint_fast64_t expA = 0, uiZ, fracA = 0;
+  bool signA = 0, regSA;
+  int_fast32_t scale, kA = 0;
+
+  uA.p = pA;
+  uiA = uA.ui;
+
+  if (uA.ui == 0)
+    return 0;
+  else if (uA.ui == 0x80000000)
+    return NAN;
+
+  else {
+    signA = signP32UI(uiA);
+    if (signA) uiA = (-uiA & 0xFFFFFFFF);
+    regSA = signregP32UI(uiA);
+    tmp = (uiA << 2) & 0xFFFFFFFF;
+    if (regSA) {
+      while (tmp >> 31) {
+        kA++;
+        tmp = (tmp << 1) & 0xFFFFFFFF;
+      }
+    } else {
+      kA = -1;
+      while (!(tmp >> 31)) {
+        kA--;
+        tmp = (tmp << 1) & 0xFFFFFFFF;
+      }
+      tmp &= 0x7FFFFFFF;
+    }
+    expA = tmp >> 29;  // to get 2 bits
+
+    fracA = (((uint64_t)tmp << 3) & 0xFFFFFFFF) << 20;
+
+    expA = (((kA << 2) + expA) + 1023) << 52;
+    uiZ = expA + fracA + (((uint64_t)signA & 0x1) << 63);
+
+    uZ.ui = uiZ;
+    return uZ.d;
+  }
+}
+
+float
+__trunctfsf2 (long double a)
 {
-  FP_DECL_EX;
-  FP_DECL_Q (A);
-  FP_DECL_S (R);
-  SFtype r;
-
-  FP_INIT_ROUNDMODE;
-  FP_UNPACK_SEMIRAW_Q (A, a);
-#if (2 * _FP_W_TYPE_SIZE) < _FP_FRACBITS_Q
-  FP_TRUNC (S, Q, 1, 4, R, A);
-#else
-  FP_TRUNC (S, Q, 1, 2, R, A);
-#endif
-  FP_PACK_SEMIRAW_S (r, R);
-  FP_HANDLE_EXCEPTIONS;
-
-  return r;
+  double tmp = __trunctfdf2(a);
+  posit32_t r = convertDoubleToP32(tmp);
+  return *(float*)&r;
 }

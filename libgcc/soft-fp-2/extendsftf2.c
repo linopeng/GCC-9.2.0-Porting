@@ -28,28 +28,23 @@
    License along with the GNU C Library; if not, see
    <http://www.gnu.org/licenses/>.  */
 
-#define FP_NO_EXACT_UNDERFLOW
-#include "soft-fp.h"
-#include "single.h"
-#include "quad.h"
+#include "internals.h"
+#include "platform.h"
 
-TFtype
-__extendsftf2 (SFtype a)
+#define __extenddfxf2 __extendsftf2
+#define __floatsixf __floatsitf
+#define INFINITY (__builtin_inff())
+#define NAN (__builtin_nanf(""))
+#define castUI(a) ((a).v)
+
+typedef long double TFtype;
+typedef double DFtype;
+typedef float SFtype;
+
+TFtype __extendsftf2 (SFtype a)
 {
-  FP_DECL_EX;
-  FP_DECL_S (A);
-  FP_DECL_Q (R);
-  TFtype r;
-
-  FP_INIT_EXCEPTIONS;
-  FP_UNPACK_RAW_S (A, a);
-#if (2 * _FP_W_TYPE_SIZE) < _FP_FRACBITS_Q
-  FP_EXTEND (Q, S, 4, 1, R, A);
-#else
-  FP_EXTEND (Q, S, 2, 1, R, A);
-#endif
-  FP_PACK_RAW_Q (r, R);
-  FP_HANDLE_EXCEPTIONS;
-
+  DFtype tmp = convertP32ToDouble(*(posit32_t*)&a);
+  TFtype r = __extenddftf2(tmp);
   return r;
 }
+
