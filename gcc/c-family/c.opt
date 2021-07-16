@@ -260,10 +260,6 @@ Wabi
 C ObjC C++ ObjC++ LTO Var(warn_abi) Warning
 Warn about things that will change when compiling with an ABI-compliant compiler.
 
-fposit
-C var(fposit)
-Warn user convert float to posit.
-
 Wabi=
 C ObjC C++ ObjC++ LTO Joined RejectNegative UInteger Warning
 Warn about things that change between the current -fabi-version and the specified version.

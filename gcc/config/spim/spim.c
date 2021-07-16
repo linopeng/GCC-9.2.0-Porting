@@ -488,41 +488,20 @@ void initialize_trampoline(void)
 
 void spim_prologue(void)
 {
-	int i, j;
-
-	emit_move_insn(gen_rtx_MEM(SImode, plus_constant(SImode, stack_pointer_rtx, -4)), return_addr_rtx); // sw      $ra, -4($sp)
-	//emit_move_insn(gen_rtx_MEM(SImode,plus_constant(SImode,stack_pointer_rtx,-4)),stack_pointer_rtx);
-	emit_move_insn(gen_rtx_MEM(SImode, plus_constant(SImode, stack_pointer_rtx, -8)), hard_frame_pointer_rtx); // sw      $fp, -8($sp)
-	for (i = 0, j = 4; i < FIRST_PSEUDO_REGISTER; i++)
-	{
-		if (df_regs_ever_live_p(i) && !call_used_regs[i] && !fixed_regs[i])
-		{
-			fprintf(stderr, "----------------------------------------------------------------------------prologue\n");
-			emit_move_insn(gen_rtx_MEM(SImode, plus_constant(SImode, hard_frame_pointer_rtx, -4 * j, 0)), gen_rtx_REG(SImode, i)); //definde plus_constant arg 3 offset
-			j++;																												   // Similar sw  $r[0..31], -4*j($fp)
-		}
-	}
-	// j = 4
-	emit_insn(gen_rtx_SET(stack_pointer_rtx, plus_constant(SImode, stack_pointer_rtx, -((2 + j) * 4 + get_frame_size())))); // addi    $sp, $sp, -((3+j)*4+get_frame_size())
-	emit_move_insn(hard_frame_pointer_rtx, plus_constant(SImode, stack_pointer_rtx, 0));									// move    $fp,	$sp
+	// sw      $ra, -4($sp)
+	emit_move_insn(gen_rtx_MEM(SImode, plus_constant(SImode, stack_pointer_rtx, -4)), return_addr_rtx); 
+	// sw      $fp, -8($sp)
+	emit_move_insn(gen_rtx_MEM(SImode, plus_constant(SImode, stack_pointer_rtx, -8)), hard_frame_pointer_rtx); 
+	// addi    $sp, $sp, -(6 * 4 + get_frame_size())
+	emit_insn(gen_rtx_SET(stack_pointer_rtx, plus_constant(SImode, stack_pointer_rtx, -(6 * 4 + get_frame_size())))); 
+	// move    $fp,	$sp
+	emit_move_insn(hard_frame_pointer_rtx, plus_constant(SImode, stack_pointer_rtx, 0));									
 }
 
 void spim_epilogue(void)
 {
-	int i, j;
-
-	for (i = 0, j = 3; i < FIRST_PSEUDO_REGISTER; i++) /*Restore all the callee-registers from stack frame*/
-	{
-		if (df_regs_ever_live_p(i) && !call_used_regs[i] && !fixed_regs[i])
-		{
-			fprintf(stderr, "----------------------------------------------------------------------------epilogue\n");
-			emit_move_insn(gen_rtx_REG(SImode, i), gen_rtx_MEM(SImode, plus_constant(SImode, hard_frame_pointer_rtx, -4 * j))); //lw reg Mem
-			j++;
-		}
-	}
 	/*Restore stack pointer*/
-	emit_insn(gen_rtx_SET(stack_pointer_rtx, plus_constant(SImode, stack_pointer_rtx, ((3 + j) * 4 + get_frame_size()))));
-	//emit_move_insn(stack_pointer_rtx, gen_rtx_MEM(SImode,plus_constant(SImode,stack_pointer_rtx,-4)));
+	emit_insn(gen_rtx_SET(stack_pointer_rtx, plus_constant(SImode, stack_pointer_rtx, (6 * 4 + get_frame_size()))));
 	/*Restore frame pointer*/
 	emit_move_insn(hard_frame_pointer_rtx, gen_rtx_MEM(SImode, plus_constant(SImode, stack_pointer_rtx, -8)));
 	/*Restore return address*/

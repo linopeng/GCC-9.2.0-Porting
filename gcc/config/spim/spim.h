@@ -57,13 +57,13 @@
                         /* considered for register allocation.        */ \
   {                                                                      \
     1, 1, 0, 0,                                                          \
-        0, 0, 0, 0,                                                      \
-        0, 0, 0, 0,                                                      \
-        0, 0, 0, 0,                                                      \
-        0, 0, 0, 0,                                                      \
-        0, 0, 0, 0,                                                      \
-        0, 0, 1, 1,                                                      \
-        1, 1, 1, 1                                                       \
+    0, 0, 0, 0,                                                      \
+    0, 0, 0, 0,                                                      \
+    0, 0, 0, 0,                                                      \
+    0, 0, 0, 0,                                                      \
+    0, 0, 0, 0,                                                      \
+    0, 0, 1, 1,                                                      \
+    1, 1, 1, 1                                                       \
   }
 
 #define CALL_USED_REGISTERS /* Caller-saved registers. This is irrelevant */ \
@@ -72,13 +72,13 @@
                             /* precise later.                             */ \
   {                                                                          \
     1, 1, 1, 1,                                                              \
-        1, 1, 1, 1,                                                          \
-        1, 1, 1, 1,                                                          \
-        1, 1, 1, 1,                                                          \
-        0, 0, 0, 0,                                                          \
-        0, 0, 0, 0,                                                          \
-        1, 1, 1, 1,                                                          \
-        1, 1, 1, 1                                                           \
+    1, 1, 1, 1,                                                          \
+    1, 1, 1, 1,                                                          \
+    1, 1, 1, 1,                                                          \
+    0, 0, 0, 0,                                                          \
+    0, 0, 0, 0,                                                          \
+    1, 1, 1, 1,                                                          \
+    1, 1, 1, 1                                                           \
   }
 
 /* The  additional  classes   defined  here  are  CALLER_SAVED_REGISTER,
@@ -101,12 +101,12 @@ enum reg_class
 #define REG_CLASS_NAMES      \
   {                          \
     "NO_REGS",               \
-        "ZERO_REGS",         \
-        "CALLER_SAVED_REGS", \
-        "CALLEE_SAVED_REGS", \
-        "BASE_REGS",         \
-        "GEN_REGS",          \
-        "ALL_REGS"           \
+    "ZERO_REGS",         \
+    "CALLER_SAVED_REGS", \
+    "CALLEE_SAVED_REGS", \
+    "BASE_REGS",         \
+    "GEN_REGS",          \
+    "ALL_REGS"           \
   }
 
 #define REG_CLASS_CONTENTS /* We have included un-available registers also */          \

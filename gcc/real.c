@@ -1039,7 +1039,7 @@ do_fix_trunc(REAL_VALUE_TYPE *r, const REAL_VALUE_TYPE *a)
       get_zero(r, r->sign);
     else if (REAL_EXP(r) < SIGNIFICAND_BITS)
     {
-      printf("Real_EXP = %d, significand = %d\n", REAL_EXP(r), SIGNIFICAND_BITS);
+      //printf("Real_EXP = %d, significand = %d\n", REAL_EXP(r), SIGNIFICAND_BITS);
       clear_significand_below(r, SIGNIFICAND_BITS - REAL_EXP(r));
     }
 
@@ -2949,6 +2949,7 @@ encode_ieee_single(const struct real_format *fmt, long *buf,
       }
       else
         exp = REAL_EXP(r) - 1;
+      printf("exp = %d\n", exp);
       if (exp >= 120 && sign == 0)
       {
         image = 0x7FFFFFFF; // maxpos
@@ -2978,6 +2979,7 @@ encode_ieee_single(const struct real_format *fmt, long *buf,
       {
         reg = 1; //because k = m-1; so need to add back 1
         //regime
+        printf("exp = %d\n", exp);
         while (exp >= 4)
         {
           exp -= 4; // f32/=16;
@@ -3128,6 +3130,7 @@ encode_ieee_single(const struct real_format *fmt, long *buf,
         exp = 0;
       else
         exp = REAL_EXP(r) + 127 - 1;
+      printf("exp = %d\n", exp);
       image |= exp << 23;
       image |= sig;
       break;

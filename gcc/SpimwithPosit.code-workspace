@@ -78,7 +78,15 @@
 			"typeinfo": "cpp",
 			"cmath": "c",
 			"complex": "c",
-			"bit": "c"
+			"bit": "c",
+			"areal": "cpp",
+			"bfloat": "cpp",
+			"decimal": "cpp",
+			"fixpnt": "cpp",
+			"integer": "cpp",
+			"lns": "cpp",
+			"posit": "cpp",
+			"unum": "cpp"
 		}
 	}
 }
