@@ -54,6 +54,7 @@ In this part, we implement Posit format in GCC. And we via compiler option fposi
 
 ![](https://i.imgur.com/wL1xBhe.png)
 
+To switch IEEE 754 or Posit, we add fposit option in gcc/common.opt for suitable environment. More infomation about commont.opt parameter, you can refer GCC internals manual (https://gcc.gnu.org/onlinedocs/gccint/Options.html#Options).  
 Inorder to transform floating-point format, gcc via internal macro REAL_VALUE_TYPE to transform when parsing float senmatic statment. And in the assembly stage Posit format represent as decimal. The REAL_VALUE_TYPE lives in gcc/real.c and real.h. The architecture of compile float flow as below picture. 
 
 ![image](https://user-images.githubusercontent.com/51993200/125903994-78018b47-3b7b-44aa-bf10-73290237d3bf.png)
