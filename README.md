@@ -1,6 +1,6 @@
 # GCC-9.2.0 for Posit&Porting
 This repo divided into two parts. One of GCC porting for spim. The other is for GCC internal transform floating-point format.
-## Porting
+# Porting
 In this part, we porting GCC into spim target. In GCC backend, MD(machine description) used to defien target architecture and output assembly code. 
 It divid three file of MD(target.c/target.g/target.md).
 * Target.c contain functions used by target.h and target.md.
@@ -49,7 +49,7 @@ void main()
         g = add(a, b, c, d, e, f);
 }
 ```
-## Posit
+# Posit
 In this part, we implement Posit format in GCC. And we via compiler option fposit to switch IEEE 754 or Posit. You can reffer as below picture.
 
 ![](https://i.imgur.com/wL1xBhe.png)
