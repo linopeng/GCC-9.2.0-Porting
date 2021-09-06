@@ -32,7 +32,7 @@ For target spim, you can refer as following step to build in your machine.
     > mkdir build
     > cd build
     > ../GCC-9.2.0-Porting/configure --prefix=/path --target=spim --enable-languages=c --with-gnu-ld --with-gnu-as --disable-shared --disable-threads --disable-libmudflap --disable-libgomp --disable-libssp --disable-libquadmath --disable-libatomic --with-float=soft --disable-multilib
-    > make all-gcc -j8 CFLAG="-O2 -fpermissive -g" CXXFLAGS="-O2 -fpermissive -g"
+    > make all-gcc -j8 CFLAGS="-O2 -fpermissive -g" CXXFLAGS="-O2 -fpermissive -g"
     > make install 
     
 ### Examples and Compile
